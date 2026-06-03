@@ -4,6 +4,7 @@ import Layout from './components/layout/Layout';
 import PrivateRoute from './routes/PrivateRoute';
 import RoleRoute from './routes/RoleRoute';
 
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import AttendPage from './pages/AttendPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
@@ -17,6 +18,7 @@ import NewSubmissionPage from './pages/submissions/NewSubmissionPage';
 import DowntimePage from './pages/downtime/DowntimePage';
 import InstructorsPage from './pages/users/InstructorsPage';
 import UsersPage from './pages/admin/UsersPage';
+import SiteContentPage from './pages/admin/SiteContentPage';
 import ProfilePage from './pages/account/ProfilePage';
 import SettingsPage from './pages/account/SettingsPage';
 import TasksPage from './pages/tasks/TasksPage';
@@ -30,6 +32,7 @@ export default function App() {
   return (
     <Routes>
       {/* Public */}
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -50,7 +53,6 @@ export default function App() {
           </PrivateRoute>
         }
       >
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
 
         <Route
@@ -139,6 +141,14 @@ export default function App() {
           element={
             <RoleRoute roles={['admin']}>
               <UsersPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/site"
+          element={
+            <RoleRoute roles={['admin']}>
+              <SiteContentPage />
             </RoleRoute>
           }
         />

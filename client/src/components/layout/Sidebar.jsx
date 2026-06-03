@@ -7,6 +7,7 @@ import {
   Radio,
   UserCog,
   ShieldCheck,
+  Globe,
   ListTodo,
   GraduationCap,
   MessageSquare,
@@ -29,6 +30,7 @@ function buildNav(user) {
   // System admin: global account management only.
   if (user.role === 'admin') {
     items.push({ to: '/users', label: 'User Management', icon: ShieldCheck });
+    items.push({ to: '/site', label: 'Website Content', icon: Globe });
     return items;
   }
 

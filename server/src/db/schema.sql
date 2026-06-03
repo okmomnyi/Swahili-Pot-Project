@@ -183,3 +183,26 @@ CREATE TABLE IF NOT EXISTS inquiry_messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_inquiry_messages_inquiry ON inquiry_messages (inquiry_id, created_at);
+
+-- ---- Public website (admin-editable) ----
+
+-- Editable landing-page content, one JSON document per section key.
+CREATE TABLE IF NOT EXISTS site_settings (
+  key VARCHAR(60) PRIMARY KEY,
+  value JSONB NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Partner organisations shown on the landing page.
+CREATE TABLE IF NOT EXISTS partners (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  website VARCHAR(300),
+  logo_url VARCHAR(500),
+  logo_storage VARCHAR(10),
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_partners_active ON partners (is_active, sort_order);
