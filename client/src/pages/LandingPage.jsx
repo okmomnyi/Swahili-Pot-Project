@@ -396,7 +396,7 @@ export default function LandingPage() {
       </section>
 
       {/* Impact — dark band */}
-      <section id="impact" className="relative overflow-hidden px-4 py-20 text-white">
+      <section id="impact" className="relative isolate overflow-hidden px-4 py-20 text-white">
         <div className="absolute inset-0 -z-10" style={{ background: 'linear-gradient(135deg, #0a1654 0%, #1e40af 100%)' }} />
         <div className="animate-blob animate-float-slow absolute -right-16 top-0 -z-10 h-72 w-72 bg-[#3b63d4]/30 blur-3xl" />
         <div className="mx-auto max-w-5xl text-center">
@@ -445,7 +445,7 @@ export default function LandingPage() {
       </section>
 
       {/* Newsletter */}
-      <section className="relative overflow-hidden px-4 py-14 text-white">
+      <section className="relative isolate overflow-hidden px-4 py-14 text-white">
         <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#1730a0] to-[#1e40af]" />
         <div className="animate-blob absolute -left-10 -top-10 -z-10 h-48 w-48 bg-white/10 blur-2xl" />
         <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-5 md:flex-row">
