@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { AlarmClock, Plus, Trash2, Check } from 'lucide-react';
+import { AlarmClock, Plus, Trash2, Check, CalendarPlus, Download } from 'lucide-react';
 import { getReminders, createReminder, updateReminder, deleteReminder } from '../../api/attachee';
 import { useToast } from '../../components/ui/Toast';
 import { formatEAT } from '../../lib/datetime';
+import { googleCalendarUrl, downloadIcs } from '../../lib/calendar';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -89,7 +90,10 @@ export default function RemindersPage() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-xl font-bold text-ink">Reminders</h2>
+        <div>
+          <h2 className="font-display text-xl font-bold text-ink">Reminders</h2>
+          <p className="mt-1 text-sm text-subtle">Add any reminder to your phone’s Google Calendar in one tap.</p>
+        </div>
         <Button onClick={() => setModalOpen(true)}>
           <Plus size={16} /> New Reminder
         </Button>
@@ -128,6 +132,22 @@ export default function RemindersPage() {
                     {formatEAT(r.remind_at)}
                     {overdue ? ' · overdue' : ''}
                   </p>
+                  <div className="mt-2 flex flex-wrap gap-3">
+                    <a
+                      href={googleCalendarUrl({ title: r.title, details: r.note || '', start: r.remind_at })}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline"
+                    >
+                      <CalendarPlus size={13} /> Add to Google Calendar
+                    </a>
+                    <button
+                      onClick={() => downloadIcs({ title: r.title, details: r.note || '', start: r.remind_at })}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-subtle hover:text-ink"
+                    >
+                      <Download size={13} /> .ics
+                    </button>
+                  </div>
                 </div>
                 <button onClick={() => remove(r)} className="text-subtle hover:text-[#dc2626]" aria-label="Delete">
                   <Trash2 size={16} />
