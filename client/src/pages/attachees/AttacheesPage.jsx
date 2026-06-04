@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, FileDown } from 'lucide-react';
 import { getDeptAttachees, getDeptCheckins } from '../../api/attachee';
+import { useAuth } from '../../context/AuthContext';
 import { formatEAT, formatTimeEAT } from '../../lib/datetime';
+import { exportTablePdf } from '../../lib/pdf';
+import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Spinner from '../../components/ui/Spinner';
@@ -9,9 +12,27 @@ import EmptyState from '../../components/ui/EmptyState';
 import { Table, THead, TH, TBody, TR, TD } from '../../components/ui/Table';
 
 export default function AttacheesPage() {
+  const { user } = useAuth();
   const [attachees, setAttachees] = useState([]);
   const [checkins, setCheckins] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  function handleExport() {
+    exportTablePdf({
+      title: 'Attachee Check-ins',
+      subtitle: `${user.department_name} Department`,
+      meta: [`Attachees: ${attachees.length}  ·  Check-ins: ${checkins.length}`],
+      columns: ['#', 'Attachee', 'Date', 'Check-in', 'Check-out'],
+      rows: checkins.map((c, i) => [
+        i + 1,
+        c.attachee_name,
+        formatEAT(c.check_in, 'd MMM yyyy'),
+        formatTimeEAT(c.check_in),
+        c.check_out ? formatTimeEAT(c.check_out) : '—',
+      ]),
+      filename: 'attachee-checkins',
+    });
+  }
 
   useEffect(() => {
     Promise.all([getDeptAttachees(), getDeptCheckins()])
@@ -36,9 +57,14 @@ export default function AttacheesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="font-display text-xl font-bold text-ink">Attachees</h2>
-        <p className="mt-1 text-sm text-subtle">{attachees.length} in your department</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl font-bold text-ink">Attachees</h2>
+          <p className="mt-1 text-sm text-subtle">{attachees.length} in your department</p>
+        </div>
+        <Button variant="secondary" onClick={handleExport} disabled={checkins.length === 0}>
+          <FileDown size={16} /> Export PDF
+        </Button>
       </div>
 
       {attachees.length > 0 && (

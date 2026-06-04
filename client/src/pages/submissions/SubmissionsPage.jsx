@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Plus, Paperclip, ChevronDown, ChevronRight, Download } from 'lucide-react';
+import { FileText, Plus, Paperclip, ChevronDown, ChevronRight, Download, FileDown } from 'lucide-react';
 import {
   getSubmissions,
   acknowledgeSubmission,
@@ -10,6 +10,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { formatEAT } from '../../lib/datetime';
+import { exportTablePdf } from '../../lib/pdf';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
@@ -84,6 +85,25 @@ export default function SubmissionsPage() {
     tab === 'All' ? true : s.status === tab.toLowerCase()
   );
 
+  function handleExport() {
+    const cols = isSupervisor
+      ? ['#', 'Title', 'Form Type', 'Instructor', 'Submitted', 'Status']
+      : ['#', 'Title', 'Form Type', 'Submitted', 'Status'];
+    const rows = filtered.map((s, i) =>
+      isSupervisor
+        ? [i + 1, s.title, s.form_type, s.instructor_name || '—', formatEAT(s.submitted_at), s.status]
+        : [i + 1, s.title, s.form_type, formatEAT(s.submitted_at), s.status]
+    );
+    exportTablePdf({
+      title: 'Submissions',
+      subtitle: `${user.department_name} Department · ${tab}`,
+      meta: [`Total: ${filtered.length}`],
+      columns: cols,
+      rows,
+      filename: 'submissions',
+    });
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -102,13 +122,18 @@ export default function SubmissionsPage() {
             </button>
           ))}
         </div>
-        {!isSupervisor && (
-          <Link to="/submissions/new">
-            <Button>
-              <Plus size={16} /> New Submission
-            </Button>
-          </Link>
-        )}
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={handleExport} disabled={filtered.length === 0}>
+            <FileDown size={16} /> Export PDF
+          </Button>
+          {!isSupervisor && (
+            <Link to="/submissions/new">
+              <Button>
+                <Plus size={16} /> New Submission
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {loading ? (

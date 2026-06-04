@@ -41,16 +41,15 @@ router.get('/:token', async (req, res, next) => {
 router.post('/:token', async (req, res, next) => {
   try {
     const { token } = req.params;
-    const { trainee_name, trainee_phone, tasks_completed } = req.body || {};
+    // Trainees enter only their name and phone — the check-in time is recorded
+    // automatically by the server (East Africa Time on display).
+    const { trainee_name, trainee_phone } = req.body || {};
 
     if (!trainee_name || !trainee_name.trim()) {
       return res.status(400).json({ error: 'Full name is required' });
     }
     if (!trainee_phone || !trainee_phone.trim()) {
       return res.status(400).json({ error: 'Phone number is required' });
-    }
-    if (!tasks_completed || !tasks_completed.trim()) {
-      return res.status(400).json({ error: 'Tasks completed is required' });
     }
 
     const sessionResult = await pool.query(
@@ -66,10 +65,10 @@ router.post('/:token', async (req, res, next) => {
     const sessionId = sessionResult.rows[0].id;
 
     const { rows } = await pool.query(
-      `INSERT INTO attendance_records (session_id, trainee_name, trainee_phone, tasks_completed, check_in)
-       VALUES ($1, $2, $3, $4, NOW())
+      `INSERT INTO attendance_records (session_id, trainee_name, trainee_phone, check_in)
+       VALUES ($1, $2, $3, NOW())
        RETURNING id AS record_id, trainee_name, check_in`,
-      [sessionId, trainee_name.trim(), trainee_phone.trim(), tasks_completed.trim()]
+      [sessionId, trainee_name.trim(), trainee_phone.trim()]
     );
 
     return res.status(201).json(rows[0]);

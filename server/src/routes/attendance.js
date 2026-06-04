@@ -47,6 +47,28 @@ router.get('/sessions', verifyToken, requireRole('instructor'), async (req, res,
   }
 });
 
+// PATCH /api/attendance/sessions/:id — rename a session (instructor owner)
+router.patch('/sessions/:id', verifyToken, requireRole('instructor'), async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid session id' });
+
+    const { session_label } = req.body || {};
+    const label = session_label && session_label.trim() ? session_label.trim() : null;
+
+    const { rows } = await pool.query(
+      `UPDATE attendance_sessions SET session_label = $1
+        WHERE id = $2 AND instructor_id = $3
+        RETURNING id, instructor_id, department_id, token, session_label, created_at, expires_at`,
+      [label, id, req.user.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Session not found' });
+    return res.json({ session: rows[0] });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 // GET /api/attendance/sessions/supervisor-view — supervisor only, own department
 router.get('/sessions/supervisor-view', verifyToken, requireRole('supervisor'), async (req, res, next) => {
   try {

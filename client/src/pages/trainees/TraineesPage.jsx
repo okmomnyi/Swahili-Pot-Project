@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { UserPlus, Users, Trash2 } from 'lucide-react';
+import { UserPlus, Users, Trash2, FileDown } from 'lucide-react';
 import { getTrainees, createTrainee, deactivateTrainee } from '../../api/trainees';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { formatDateEAT } from '../../lib/datetime';
+import { exportTablePdf } from '../../lib/pdf';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
@@ -15,6 +17,7 @@ const KENYAN_PHONE_RE = /^0(7|1)\d{8}$/;
 
 export default function TraineesPage() {
   const { show } = useToast();
+  const { user } = useAuth();
   const [trainees, setTrainees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showInactive, setShowInactive] = useState(false);
@@ -82,6 +85,23 @@ export default function TraineesPage() {
 
   const visible = trainees.filter((t) => (showInactive ? true : t.is_active));
 
+  function handleExport() {
+    exportTablePdf({
+      title: 'Trainees',
+      subtitle: `${user.department_name} Department`,
+      meta: [`Total: ${visible.length}`],
+      columns: ['#', 'Name', 'Phone', 'Date Added', 'Status'],
+      rows: visible.map((t, i) => [
+        i + 1,
+        t.name,
+        t.phone,
+        formatDateEAT(t.created_at),
+        t.is_active ? 'Active' : 'Inactive',
+      ]),
+      filename: 'trainees',
+    });
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
@@ -94,9 +114,14 @@ export default function TraineesPage() {
           />
           Show deactivated
         </label>
-        <Button onClick={() => setModalOpen(true)}>
-          <UserPlus size={16} /> Add Trainee
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={handleExport} disabled={visible.length === 0}>
+            <FileDown size={16} /> Export PDF
+          </Button>
+          <Button onClick={() => setModalOpen(true)}>
+            <UserPlus size={16} /> Add Trainee
+          </Button>
+        </div>
       </div>
 
       {loading ? (

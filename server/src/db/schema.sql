@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS attendance_records (
   session_id INTEGER NOT NULL REFERENCES attendance_sessions(id) ON DELETE CASCADE,
   trainee_name VARCHAR(150) NOT NULL,
   trainee_phone VARCHAR(20) NOT NULL,
-  tasks_completed TEXT NOT NULL,
+  tasks_completed TEXT,
   check_in TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   check_out TIMESTAMPTZ,
   is_confirmed BOOLEAN NOT NULL DEFAULT false,

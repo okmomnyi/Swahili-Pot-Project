@@ -32,6 +32,10 @@ async function runOnce() {
     );
     await client.query('ALTER TABLE form_submissions ADD COLUMN IF NOT EXISTS task_id INTEGER');
 
+    // Simplified QR attendance: trainees enter only name + phone, so the
+    // "tasks completed" field is now optional.
+    await client.query('ALTER TABLE attendance_records ALTER COLUMN tasks_completed DROP NOT NULL');
+
     // Intentional startup logging.
     console.log('Database migration complete — all tables ensured.');
   } finally {

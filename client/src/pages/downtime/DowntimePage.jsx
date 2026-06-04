@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Radio, Plus } from 'lucide-react';
+import { Radio, Plus, FileDown } from 'lucide-react';
 import {
   getDowntimeReports,
   createDowntimeReport,
@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { formatEAT } from '../../lib/datetime';
+import { exportTablePdf } from '../../lib/pdf';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -113,15 +114,36 @@ export default function DowntimePage() {
     }
   }
 
+  function handleExport() {
+    const cols = isSupervisor
+      ? ['#', 'Frequency', 'Severity', 'Status', 'Instructor', 'Reported']
+      : ['#', 'Frequency', 'Severity', 'Status', 'Reported'];
+    exportTablePdf({
+      title: 'Downtime Reports',
+      subtitle: `${user.department_name} Department`,
+      meta: [`Total: ${reports.length}`],
+      columns: cols,
+      rows: reports.map((r, i) =>
+        isSupervisor
+          ? [i + 1, r.frequency_band, r.severity, r.status, r.instructor_name || '—', formatEAT(r.reported_at)]
+          : [i + 1, r.frequency_band, r.severity, r.status, formatEAT(r.reported_at)]
+      ),
+      filename: 'downtime-reports',
+    });
+  }
+
   return (
     <div className="space-y-5">
-      {!isSupervisor && (
-        <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button variant="secondary" onClick={handleExport} disabled={reports.length === 0}>
+          <FileDown size={16} /> Export PDF
+        </Button>
+        {!isSupervisor && (
           <Button onClick={() => setReportOpen(true)}>
             <Plus size={16} /> Report Downtime
           </Button>
-        </div>
-      )}
+        )}
+      </div>
 
       {loading ? (
         <Spinner />

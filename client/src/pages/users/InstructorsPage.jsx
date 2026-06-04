@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { UserCog, UserPlus } from 'lucide-react';
+import { UserCog, UserPlus, FileDown } from 'lucide-react';
 import { getInstructors, createInstructor, toggleInstructor } from '../../api/users';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { formatDateEAT } from '../../lib/datetime';
+import { exportTablePdf } from '../../lib/pdf';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
@@ -15,6 +17,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function InstructorsPage() {
   const { show } = useToast();
+  const { user } = useAuth();
   const [instructors, setInstructors] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -84,9 +87,29 @@ export default function InstructorsPage() {
     }
   }
 
+  function handleExport() {
+    exportTablePdf({
+      title: 'Instructors',
+      subtitle: `${user.department_name} Department`,
+      meta: [`Total: ${instructors.length}`],
+      columns: ['#', 'Name', 'Email', 'Status', 'Date Added'],
+      rows: instructors.map((u, i) => [
+        i + 1,
+        u.name,
+        u.email,
+        u.is_active ? 'Active' : 'Inactive',
+        formatDateEAT(u.created_at),
+      ]),
+      filename: 'instructors',
+    });
+  }
+
   return (
     <div className="space-y-5">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button variant="secondary" onClick={handleExport} disabled={instructors.length === 0}>
+          <FileDown size={16} /> Export PDF
+        </Button>
         <Button onClick={() => setModalOpen(true)}>
           <UserPlus size={16} /> Add Instructor
         </Button>

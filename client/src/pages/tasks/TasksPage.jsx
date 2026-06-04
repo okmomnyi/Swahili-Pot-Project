@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ListTodo, Plus } from 'lucide-react';
+import { ListTodo, Plus, FileDown } from 'lucide-react';
 import { getTasks, createTask, updateTaskStatus } from '../../api/tasks';
 import { getDeptAttachees } from '../../api/attachee';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { formatDateEAT } from '../../lib/datetime';
+import { exportTablePdf } from '../../lib/pdf';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -92,17 +93,43 @@ export default function TasksPage() {
     }
   }
 
+  function handleExport() {
+    const cols = isStaff
+      ? ['#', 'Title', 'Attachee', 'Priority', 'Status', 'Due']
+      : ['#', 'Title', 'Assigned By', 'Priority', 'Status', 'Due'];
+    exportTablePdf({
+      title: isStaff ? 'Attachee Tasks' : 'My Tasks',
+      subtitle: `${user.department_name} Department`,
+      meta: [`Total: ${tasks.length}`],
+      columns: cols,
+      rows: tasks.map((t, i) => [
+        i + 1,
+        t.title,
+        isStaff ? t.attachee_name : t.assigned_by_name,
+        t.priority,
+        t.status.replace('_', ' '),
+        t.due_date ? formatDateEAT(t.due_date) : '—',
+      ]),
+      filename: 'tasks',
+    });
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-xl font-bold text-ink">
           {isStaff ? 'Attachee Tasks' : 'My Tasks'}
         </h2>
-        {isStaff && (
-          <Button onClick={() => setModalOpen(true)} disabled={attachees.length === 0}>
-            <Plus size={16} /> Assign Task
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={handleExport} disabled={tasks.length === 0}>
+            <FileDown size={16} /> Export PDF
           </Button>
-        )}
+          {isStaff && (
+            <Button onClick={() => setModalOpen(true)} disabled={attachees.length === 0}>
+              <Plus size={16} /> Assign Task
+            </Button>
+          )}
+        </div>
       </div>
 
       {isStaff && attachees.length === 0 && !loading && (

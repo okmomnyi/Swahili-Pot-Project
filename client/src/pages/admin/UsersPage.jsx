@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { UserPlus, Search, ShieldCheck, KeyRound, Ban, CircleCheck, Trash2, Eye } from 'lucide-react';
+import { UserPlus, Search, ShieldCheck, KeyRound, Ban, CircleCheck, Trash2, Eye, FileDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import {
   getAdminUsers,
@@ -11,6 +11,7 @@ import {
 import { getDepartments } from '../../api/departments';
 import { useToast } from '../../components/ui/Toast';
 import { formatEAT } from '../../lib/datetime';
+import { exportTablePdf } from '../../lib/pdf';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
@@ -143,6 +144,24 @@ export default function UsersPage() {
     }
   }
 
+  function handleExport() {
+    exportTablePdf({
+      title: 'User Accounts',
+      subtitle: filters.role ? ROLE_LABEL[filters.role] + 's' : 'All roles',
+      meta: [`Total: ${users.length}`],
+      columns: ['#', 'Name', 'Email', 'Role', 'Department', 'Status'],
+      rows: users.map((u, i) => [
+        i + 1,
+        u.name,
+        u.email,
+        ROLE_LABEL[u.role] || u.role,
+        u.department_name || '—',
+        u.is_active ? 'Active' : 'Suspended',
+      ]),
+      filename: 'user-accounts',
+    });
+  }
+
   return (
     <div className="space-y-5">
       {/* Role tabs — group accounts by type */}
@@ -191,6 +210,9 @@ export default function UsersPage() {
           <option value="active">Active</option>
           <option value="suspended">Suspended</option>
         </select>
+        <Button variant="secondary" onClick={handleExport} disabled={users.length === 0}>
+          <FileDown size={16} /> Export PDF
+        </Button>
         <Button onClick={() => setCreateOpen(true)}>
           <UserPlus size={16} /> New Account
         </Button>
