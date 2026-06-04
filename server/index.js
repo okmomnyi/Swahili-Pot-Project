@@ -6,6 +6,7 @@ require('dotenv').config({ override: true });
 
 const { loadEnv } = require('./src/config/env');
 const { checkS3 } = require('./src/lib/s3');
+const { logMailConfig } = require('./src/lib/mailer');
 
 // 1. Validate environment — crashes the process if anything required is missing.
 const env = loadEnv();
@@ -19,6 +20,9 @@ async function start() {
 
   // 3. Verify file storage so misconfiguration shows up clearly in the logs.
   await checkS3();
+
+  // 3b. Log the active email provider.
+  logMailConfig();
 
   // 4. Start the server.
   app.listen(env.PORT, () => {

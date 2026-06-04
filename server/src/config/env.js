@@ -33,6 +33,9 @@ const envSchema = z.object({
   SMTP_FROM: z.string().optional(),
   // Brevo transactional HTTP API key — preferred on hosts that block SMTP ports.
   BREVO_API_KEY: z.string().optional(),
+  // Verified sender. Falls back to SMTP_FROM if not set.
+  MAIL_FROM_EMAIL: z.string().optional(),
+  MAIL_FROM_NAME: z.string().optional(),
 }).refine(
   (env) =>
     env.STORAGE_DRIVER !== 's3' ||
