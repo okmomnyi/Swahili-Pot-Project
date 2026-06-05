@@ -1,0 +1,12 @@
+{
+  "name": "swahilipot-ims",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SwahiliPot IMS monorepo — run the Express backend and the React frontend together.",
+  "scripts": {
+    "dev": "node start.js",
+    "start": "node start.js",
+    "install:all": "npm --prefix server install && npm --prefix client install",
+    "build": "npm --prefix client run build"
+  }
+}
