@@ -1,6 +1,6 @@
 'use strict';
 
-const { getNimClient, NIM_MODELS, SYSTEM_PROMPT, isRetriable } = require('./nimClient');
+const { getNimClient, NIM_MODELS, NIM_FAST_MODELS, SYSTEM_PROMPT, isRetriable } = require('./nimClient');
 
 /**
  * Run a chat completion, trying each model in order and falling through on
@@ -34,10 +34,10 @@ async function completeWithFallback({ messages, max_tokens, temperature }) {
 /**
  * Open a streaming chat completion, trying each model until one starts.
  */
-async function streamWithFallback({ messages, max_tokens, temperature }) {
+async function streamWithFallback({ messages, max_tokens, temperature, models = NIM_MODELS }) {
   const client = getNimClient();
   let lastErr = null;
-  for (const model of NIM_MODELS) {
+  for (const model of models) {
     try {
       return await client.chat.completions.create({
         model,
@@ -166,7 +166,12 @@ async function streamSupervisorAnswer({ question, departmentContext, chatHistory
     },
   ];
 
-  const stream = await streamWithFallback({ messages, max_tokens: 600, temperature: 0.6 });
+  const stream = await streamWithFallback({
+    messages,
+    max_tokens: 600,
+    temperature: 0.6,
+    models: NIM_FAST_MODELS,
+  });
 
   let fullText = '';
   for await (const chunk of stream) {

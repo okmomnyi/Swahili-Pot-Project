@@ -15,6 +15,15 @@ const NIM_MODELS = uniq([
   'mistralai/mistral-7b-instruct-v0.3',
 ]);
 
+// Fast-first ordering for the interactive assistant (snappy first token matters
+// more than depth there). A larger model is kept as fallback.
+const NIM_FAST_MODELS = uniq([
+  process.env.NVIDIA_NIM_FAST_MODEL,
+  'meta/llama-3.1-8b-instruct',
+  'mistralai/mistral-7b-instruct-v0.3',
+  'meta/llama-3.3-70b-instruct',
+]);
+
 const SYSTEM_PROMPT = `You are an expert HR analyst and career advisor embedded in the Swahilipot Hub Foundation's internal management system.
 Swahilipot is a youth-empowerment NGO in Mombasa, Kenya that runs attachment (internship) programs across departments: Tech, Communication, Creatives, Community Experience, Youth Engagement, Heritage, Finance, Admin, and Entrepreneurship.
 
@@ -60,4 +69,4 @@ function isRetriable(status) {
   return status === 404 || status === 410 || status === 429 || (status >= 500 && status < 600);
 }
 
-module.exports = { getNimClient, isConfigured, NIM_MODELS, SYSTEM_PROMPT, isRetriable };
+module.exports = { getNimClient, isConfigured, NIM_MODELS, NIM_FAST_MODELS, SYSTEM_PROMPT, isRetriable };

@@ -241,38 +241,52 @@ router.post(
       const supervisorId = req.user.id;
       const departmentId = req.user.department_id;
 
-      const historyResult = await pool.query(
-        `SELECT role, content FROM supervisor_ai_chats
-          WHERE supervisor_id = $1 ORDER BY created_at DESC LIMIT 10`,
-        [supervisorId]
-      );
-      const chatHistory = historyResult.rows.reverse();
-
-      const departmentContext = await buildDepartmentContext(departmentId);
-
+      // Open the SSE pipe IMMEDIATELY (before any DB / model work) so reverse
+      // proxies don't buffer and the client gets instant feedback.
       res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
       res.setHeader('Connection', 'keep-alive');
+      // Tell Nginx (and similar proxies) not to buffer this response.
+      res.setHeader('X-Accel-Buffering', 'no');
       res.flushHeaders();
+      res.write(': connected\n\n'); // comment event — flushes the pipe through proxies
 
-      let fullResponse = '';
-      await streamSupervisorAnswer({
-        question: question.trim(),
-        departmentContext,
-        chatHistory,
-        onChunk: (chunk) => {
-          fullResponse += chunk;
-          res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
-        },
-      });
+      // Keep-alive comments defeat idle buffering/timeouts while the model thinks.
+      const keepAlive = setInterval(() => {
+        if (!res.writableEnded) res.write(': ping\n\n');
+      }, 15000);
 
-      await pool.query(
-        `INSERT INTO supervisor_ai_chats (supervisor_id, department_id, role, content)
-         VALUES ($1,$2,'user',$3), ($1,$2,'assistant',$4)`,
-        [supervisorId, departmentId, question.trim(), fullResponse]
-      );
+      try {
+        const historyResult = await pool.query(
+          `SELECT role, content FROM supervisor_ai_chats
+            WHERE supervisor_id = $1 ORDER BY created_at DESC LIMIT 10`,
+          [supervisorId]
+        );
+        const chatHistory = historyResult.rows.reverse();
 
-      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+        const departmentContext = await buildDepartmentContext(departmentId);
+
+        let fullResponse = '';
+        await streamSupervisorAnswer({
+          question: question.trim(),
+          departmentContext,
+          chatHistory,
+          onChunk: (chunk) => {
+            fullResponse += chunk;
+            res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+          },
+        });
+
+        await pool.query(
+          `INSERT INTO supervisor_ai_chats (supervisor_id, department_id, role, content)
+           VALUES ($1,$2,'user',$3), ($1,$2,'assistant',$4)`,
+          [supervisorId, departmentId, question.trim(), fullResponse]
+        );
+
+        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      } finally {
+        clearInterval(keepAlive);
+      }
       return res.end();
     } catch (err) {
       console.error('[AI assistant]', err.message);

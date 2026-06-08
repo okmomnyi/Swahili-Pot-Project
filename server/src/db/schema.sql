@@ -56,6 +56,9 @@ CREATE TABLE IF NOT EXISTS attendance_records (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Speeds the AI context builders, which match a trainee's attendance by phone.
+CREATE INDEX IF NOT EXISTS idx_attendance_records_phone ON attendance_records (trainee_phone);
+
 CREATE TABLE IF NOT EXISTS form_submissions (
   id SERIAL PRIMARY KEY,
   instructor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
