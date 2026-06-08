@@ -26,9 +26,10 @@ function getProvider() {
       extraHeaders: {},
       models: uniq([
         process.env.NVIDIA_MODEL,
+        'moonshotai/kimi-k2-instruct',
+        'meta/llama-3.3-70b-instruct',
         'meta/llama-3.1-8b-instruct',
         'mistralai/mistral-7b-instruct-v0.3',
-        'meta/llama-3.3-70b-instruct',
         'nvidia/llama-3.1-nemotron-70b-instruct',
         'google/gemma-2-9b-it',
       ]),
