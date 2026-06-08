@@ -214,3 +214,106 @@ CREATE TABLE IF NOT EXISTS site_media (
   file_storage VARCHAR(10),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- =====================================================================
+-- Additive feature set: announcements, task feedback, session logs,
+-- activity feed, programs/cohorts and the visitor log.
+-- =====================================================================
+
+-- ---- Part 1: Announcements / notice board ----
+CREATE TABLE IF NOT EXISTS announcements (
+  id SERIAL PRIMARY KEY,
+  department_id INTEGER NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
+  posted_by INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  title VARCHAR(255) NOT NULL,
+  body TEXT NOT NULL,
+  is_pinned BOOLEAN NOT NULL DEFAULT false,
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_announcements_department
+  ON announcements (department_id, is_pinned DESC, created_at DESC);
+
+-- ---- Part 2: Threaded task comments ----
+CREATE TABLE IF NOT EXISTS task_comments (
+  id SERIAL PRIMARY KEY,
+  task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  author_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  body TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_task_comments_task ON task_comments (task_id, created_at);
+
+-- ---- Part 3: Session / daily logs ----
+CREATE TABLE IF NOT EXISTS session_logs (
+  id SERIAL PRIMARY KEY,
+  instructor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  department_id INTEGER NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
+  session_date DATE NOT NULL,
+  topics_covered TEXT NOT NULL,
+  challenges TEXT,
+  next_session_plan TEXT,
+  attendance_count INTEGER,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_session_logs_dept ON session_logs (department_id, session_date DESC);
+CREATE INDEX IF NOT EXISTS idx_session_logs_instructor ON session_logs (instructor_id, session_date DESC);
+
+-- ---- Part 4: Department activity feed ----
+CREATE TABLE IF NOT EXISTS activity_log (
+  id SERIAL PRIMARY KEY,
+  department_id INTEGER NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
+  actor_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  actor_name VARCHAR(150),
+  action_type VARCHAR(100) NOT NULL,
+  entity_type VARCHAR(50),
+  entity_id INTEGER,
+  description TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_activity_log_department ON activity_log (department_id, created_at DESC);
+
+-- ---- Part 9: Programs / cohorts ----
+CREATE TABLE IF NOT EXISTS programs (
+  id SERIAL PRIMARY KEY,
+  department_id INTEGER NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
+  created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  start_date DATE NOT NULL,
+  end_date DATE,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_programs_department ON programs (department_id, is_active DESC, start_date DESC);
+
+CREATE TABLE IF NOT EXISTS program_enrollments (
+  id SERIAL PRIMARY KEY,
+  program_id INTEGER NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
+  trainee_id INTEGER NOT NULL REFERENCES trainees(id) ON DELETE CASCADE,
+  enrolled_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (program_id, trainee_id)
+);
+
+-- ---- Part 10: Visitor / walk-in log ----
+CREATE TABLE IF NOT EXISTS visitor_log (
+  id SERIAL PRIMARY KEY,
+  department_id INTEGER NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
+  logged_by INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  visitor_name VARCHAR(150) NOT NULL,
+  visitor_phone VARCHAR(20),
+  purpose TEXT NOT NULL,
+  person_visiting VARCHAR(150),
+  time_in TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  time_out TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_visitor_log_dept_date ON visitor_log (department_id, time_in DESC);

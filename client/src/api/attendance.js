@@ -3,7 +3,8 @@ import api from './axios';
 // Instructor / supervisor (authenticated)
 export const createSession = (data) => api.post('/attendance/sessions', data);
 export const getSessions = () => api.get('/attendance/sessions');
-export const getSupervisorSessions = () => api.get('/attendance/sessions/supervisor-view');
+// Supervisor: flat list of every attendance record (with check-in/out) in dept.
+export const getSupervisorAttendance = () => api.get('/attendance/sessions/supervisor-view');
 export const getSessionRecords = (id) => api.get(`/attendance/sessions/${id}/records`);
 export const confirmRecord = (id) => api.patch(`/attendance/records/${id}/confirm`);
 export const renameSession = (id, session_label) =>

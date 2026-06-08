@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { UserPlus, Users, Trash2, FileDown } from 'lucide-react';
+import { UserPlus, Users, Trash2, FileDown, Upload } from 'lucide-react';
 import { getTrainees, createTrainee, deactivateTrainee } from '../../api/trainees';
+import BulkImportModal from '../../components/trainees/BulkImportModal';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { formatDateEAT } from '../../lib/datetime';
@@ -28,6 +29,7 @@ export default function TraineesPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const [confirmTarget, setConfirmTarget] = useState(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -117,6 +119,9 @@ export default function TraineesPage() {
         <div className="flex gap-2">
           <Button variant="secondary" onClick={handleExport} disabled={visible.length === 0}>
             <FileDown size={16} /> Export PDF
+          </Button>
+          <Button variant="secondary" onClick={() => setImportOpen(true)}>
+            <Upload size={16} /> Import CSV
           </Button>
           <Button onClick={() => setModalOpen(true)}>
             <UserPlus size={16} /> Add Trainee
@@ -222,6 +227,12 @@ export default function TraineesPage() {
           active list.
         </p>
       </Modal>
+
+      <BulkImportModal
+        isOpen={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={load}
+      />
     </div>
   );
 }

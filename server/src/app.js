@@ -21,6 +21,13 @@ const attacheeRoutes = require('./routes/attachee');
 const inquiryRoutes = require('./routes/inquiries');
 const siteRoutes = require('./routes/site');
 const chatRoutes = require('./routes/chat');
+const announcementRoutes = require('./routes/announcements');
+const sessionLogRoutes = require('./routes/sessionLogs');
+const activityRoutes = require('./routes/activity');
+const performanceRoutes = require('./routes/performance');
+const certificateRoutes = require('./routes/certificates');
+const programRoutes = require('./routes/programs');
+const visitorRoutes = require('./routes/visitors');
 
 const app = express();
 
@@ -56,6 +63,13 @@ app.use('/api/attachee', attacheeRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/site', siteRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/session-logs', sessionLogRoutes);
+app.use('/api/activity', activityRoutes);
+app.use('/api/performance', performanceRoutes);
+app.use('/api/certificates', certificateRoutes);
+app.use('/api/programs', programRoutes);
+app.use('/api/visitors', visitorRoutes);
 
 // 404 fallback for unknown API routes
 app.use('/api', (req, res) => {

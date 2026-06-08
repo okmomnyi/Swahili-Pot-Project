@@ -4,21 +4,45 @@ const express = require('express');
 const pool = require('../db/pool');
 const verifyToken = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
+const logActivity = require('../utils/logActivity');
 
 const router = express.Router();
+
+// Validate an optional program_id belongs to the user's department.
+async function resolveProgramId(rawProgramId, departmentId) {
+  if (rawProgramId === undefined || rawProgramId === null || rawProgramId === '') return null;
+  const programId = parseInt(rawProgramId, 10);
+  if (Number.isNaN(programId)) return null;
+  const { rows } = await pool.query(
+    'SELECT id FROM programs WHERE id = $1 AND department_id = $2',
+    [programId, departmentId]
+  );
+  return rows.length ? programId : null;
+}
 
 // POST /api/attendance/sessions — instructor only
 router.post('/sessions', verifyToken, requireRole('instructor'), async (req, res, next) => {
   try {
-    const { session_label } = req.body || {};
+    const { session_label, program_id } = req.body || {};
     const label = session_label && session_label.trim() ? session_label.trim() : null;
+    const programId = await resolveProgramId(program_id, req.user.department_id);
 
     const { rows } = await pool.query(
-      `INSERT INTO attendance_sessions (instructor_id, department_id, session_label)
-       VALUES ($1, $2, $3)
-       RETURNING id, instructor_id, department_id, token, session_label, created_at, expires_at`,
-      [req.user.id, req.user.department_id, label]
+      `INSERT INTO attendance_sessions (instructor_id, department_id, session_label, program_id)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, instructor_id, department_id, token, session_label, program_id, created_at, expires_at`,
+      [req.user.id, req.user.department_id, label, programId]
     );
+
+    await logActivity({
+      department_id: req.user.department_id,
+      actor_id: req.user.id,
+      actor_name: req.user.name,
+      action_type: 'attendance_session_created',
+      entity_type: 'attendance_session',
+      entity_id: rows[0].id,
+      description: `${req.user.name} generated an attendance QR for ${label || 'a session'}`,
+    });
 
     return res.status(201).json({ session: rows[0] });
   } catch (err) {
@@ -115,23 +139,36 @@ router.get('/records-range', verifyToken, requireRole('instructor'), async (req,
   }
 });
 
-// GET /api/attendance/sessions/supervisor-view — supervisor only, own department
+// GET /api/attendance/sessions/supervisor-view — supervisor only, own department.
+// Returns every attendance record (with check-in/check-out) across the
+// department so supervisors can see all attendance regardless of confirmation.
 router.get('/sessions/supervisor-view', verifyToken, requireRole('supervisor'), async (req, res, next) => {
   try {
     const { rows } = await pool.query(
-      `SELECT s.id, s.session_label, s.created_at, s.expires_at,
-              (s.expires_at < NOW()) AS is_expired,
-              u.name AS instructor_name,
-              COUNT(r.id)::int AS record_count
-         FROM attendance_sessions s
-         JOIN users u ON u.id = s.instructor_id
-         LEFT JOIN attendance_records r ON r.session_id = s.id
-        WHERE s.department_id = $1
-        GROUP BY s.id, u.name
-        ORDER BY s.created_at DESC`,
+      `SELECT
+         ar.id,
+         ar.trainee_name,
+         ar.trainee_phone,
+         ar.tasks_completed,
+         ar.check_in,
+         ar.check_out,
+         ar.is_confirmed,
+         ar.confirmed_at,
+         ar.created_at,
+         ats.id AS session_id,
+         ats.session_label,
+         ats.created_at AS session_date,
+         ats.expires_at,
+         u.name AS instructor_name,
+         u.id AS instructor_id
+       FROM attendance_records ar
+       JOIN attendance_sessions ats ON ar.session_id = ats.id
+       JOIN users u ON ats.instructor_id = u.id
+       WHERE ats.department_id = $1
+       ORDER BY ar.check_in DESC NULLS LAST`,
       [req.user.department_id]
     );
-    return res.json({ sessions: rows });
+    return res.json({ records: rows });
   } catch (err) {
     return next(err);
   }
@@ -200,31 +237,47 @@ router.patch('/records/:id/confirm', verifyToken, requireRole('instructor'), asy
       return res.status(404).json({ error: 'Record not found in your sessions' });
     }
 
+    await logActivity({
+      department_id: req.user.department_id,
+      actor_id: req.user.id,
+      actor_name: req.user.name,
+      action_type: 'attendance_confirmed',
+      entity_type: 'attendance_record',
+      entity_id: rows[0].id,
+      description: `${req.user.name} confirmed attendance record for ${rows[0].trainee_name}`,
+    });
+
     return res.json({ record: rows[0] });
   } catch (err) {
     return next(err);
   }
 });
 
-// PATCH /api/attendance/records/:id/checkout — PUBLIC, no auth
+// PATCH /api/attendance/records/:id/checkout — PUBLIC, no auth.
+// Called from the attachee check-out flow. Accepts an optional ISO 8601
+// `check_out`; defaults to NOW() server-side when omitted.
 router.patch('/records/:id/checkout', async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid record id' });
 
     const { check_out } = req.body || {};
-    const checkOutTime = check_out ? new Date(check_out) : new Date();
-    if (Number.isNaN(checkOutTime.getTime())) {
-      return res.status(400).json({ error: 'Invalid check_out timestamp' });
+    let checkOutIso = null;
+    if (check_out) {
+      const parsed = new Date(check_out);
+      if (Number.isNaN(parsed.getTime())) {
+        return res.status(400).json({ error: 'Invalid check_out timestamp' });
+      }
+      checkOutIso = parsed.toISOString();
     }
 
     const { rows } = await pool.query(
       `UPDATE attendance_records
-          SET check_out = $2
-        WHERE id = $1
-        RETURNING id, session_id, trainee_name, trainee_phone, tasks_completed,
-                  check_in, check_out, is_confirmed, created_at`,
-      [id, checkOutTime.toISOString()]
+          SET check_out = COALESCE($1::timestamptz, NOW())
+        WHERE id = $2
+        RETURNING id, trainee_name, trainee_phone, tasks_completed,
+                  check_in, check_out, is_confirmed, session_id`,
+      [checkOutIso, id]
     );
 
     if (rows.length === 0) {

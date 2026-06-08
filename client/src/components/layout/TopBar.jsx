@@ -14,6 +14,13 @@ const TITLES = {
   '/downtime': 'Downtime Reports',
   '/instructors': 'Instructors',
   '/users': 'User Management',
+  '/announcements': 'Announcements',
+  '/dept-attendance': 'Attendance',
+  '/session-logs': 'Session Logs',
+  '/performance': 'Attachee Performance',
+  '/certificates': 'Certificates',
+  '/programs': 'Programs',
+  '/visitors': 'Visitor Log',
   '/profile': 'My Profile',
   '/settings': 'Account Settings',
 };

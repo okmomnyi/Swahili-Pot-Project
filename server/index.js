@@ -13,6 +13,7 @@ const env = loadEnv();
 
 const app = require('./src/app');
 const migrate = require('./src/db/migrate');
+const startEscalationJob = require('./src/jobs/escalateDowntime');
 
 async function start() {
   // 2. Ensure database tables exist.
@@ -29,6 +30,9 @@ async function start() {
   app.listen(env.PORT, () => {
     console.log(`SwahiliPot IMS server running on port ${env.PORT}`);
   });
+
+  // 5. Start the background downtime escalation job (runs every 30 minutes).
+  startEscalationJob();
 }
 
 start().catch((err) => {

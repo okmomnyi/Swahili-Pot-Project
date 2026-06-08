@@ -36,6 +36,27 @@ async function runOnce() {
     // "tasks completed" field is now optional.
     await client.query('ALTER TABLE attendance_records ALTER COLUMN tasks_completed DROP NOT NULL');
 
+    // --- Part 2: task feedback / review workflow ---
+    await client.query('ALTER TABLE tasks ADD COLUMN IF NOT EXISTS feedback TEXT');
+    await client.query('ALTER TABLE tasks ADD COLUMN IF NOT EXISTS feedback_by INTEGER REFERENCES users(id)');
+    await client.query('ALTER TABLE tasks ADD COLUMN IF NOT EXISTS feedback_at TIMESTAMPTZ');
+    await client.query('ALTER TABLE tasks ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ');
+    // Widen the status check to a superset so existing rows (open/completed)
+    // stay valid while the new 'pending'/'reviewed' states are also allowed.
+    await client.query('ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_status_check');
+    await client.query(
+      "ALTER TABLE tasks ADD CONSTRAINT tasks_status_check CHECK (status IN ('open', 'pending', 'in_progress', 'submitted', 'completed', 'reviewed'))"
+    );
+
+    // --- Part 8: downtime escalation flags ---
+    await client.query('ALTER TABLE downtime_reports ADD COLUMN IF NOT EXISTS is_escalated BOOLEAN NOT NULL DEFAULT false');
+    await client.query('ALTER TABLE downtime_reports ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMPTZ');
+
+    // --- Part 9: optional program links on existing tables ---
+    await client.query('ALTER TABLE attendance_sessions ADD COLUMN IF NOT EXISTS program_id INTEGER REFERENCES programs(id) ON DELETE SET NULL');
+    await client.query('ALTER TABLE tasks ADD COLUMN IF NOT EXISTS program_id INTEGER REFERENCES programs(id) ON DELETE SET NULL');
+    await client.query('ALTER TABLE session_logs ADD COLUMN IF NOT EXISTS program_id INTEGER REFERENCES programs(id) ON DELETE SET NULL');
+
     // Intentional startup logging.
     console.log('Database migration complete — all tables ensured.');
   } finally {

@@ -4,7 +4,7 @@ import { ArrowLeft, ClipboardCheck, Pencil, FileDown } from 'lucide-react';
 import { getSessionRecords, confirmRecord, renameSession } from '../../api/attendance';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/Toast';
-import { formatEAT, formatTimeEAT } from '../../lib/datetime';
+import { formatEAT } from '../../lib/datetime';
 import { exportTablePdf } from '../../lib/pdf';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -162,6 +162,7 @@ export default function SessionDetailPage() {
             <TH>Trainee Name</TH>
             <TH>Phone</TH>
             <TH>Check-in (EAT)</TH>
+            <TH>Check-out (EAT)</TH>
             <TH>Confirmed</TH>
             {isInstructor && <TH className="text-right">Action</TH>}
           </THead>
@@ -170,7 +171,14 @@ export default function SessionDetailPage() {
               <TR key={r.id} index={i}>
                 <TD className="font-medium">{r.trainee_name}</TD>
                 <TD>{r.trainee_phone}</TD>
-                <TD>{formatTimeEAT(r.check_in)}</TD>
+                <TD>{r.check_in ? formatEAT(r.check_in, 'dd MMM yyyy, HH:mm') : '—'}</TD>
+                <TD>
+                  {r.check_out ? (
+                    formatEAT(r.check_out, 'dd MMM yyyy, HH:mm')
+                  ) : (
+                    <span className="text-[#6b7280]">Not yet</span>
+                  )}
+                </TD>
                 <TD>
                   <Badge status={r.is_confirmed ? 'confirmed' : 'pending'} />
                 </TD>
