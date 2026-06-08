@@ -180,4 +180,15 @@ router.post('/', async (req, res, next) => {
   }
 });
 
+// Log the active chat provider at startup (shown in pm2 logs).
+function logChatConfig() {
+  const p = getProvider();
+  if (!p) {
+    console.log('[chat] No chatbot provider configured (set NVIDIA_API_KEY or OPENROUTER_API_KEY).');
+    return;
+  }
+  console.log(`[chat] Using ${p.name} — primary model: ${p.models[0]}.`);
+}
+
 module.exports = router;
+module.exports.logChatConfig = logChatConfig;
