@@ -24,15 +24,17 @@ function getProvider() {
       url: process.env.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1/chat/completions',
       key: process.env.NVIDIA_API_KEY,
       extraHeaders: {},
+      // NOTE: moonshotai/kimi-k2-instruct reached end-of-life on NVIDIA NIM
+      // (2026-05-12, HTTP 410) and was removed. A stale NVIDIA_MODEL pointing at
+      // it is filtered out so it can't break the chatbot.
       models: uniq([
         process.env.NVIDIA_MODEL,
-        'moonshotai/kimi-k2-instruct',
         'meta/llama-3.3-70b-instruct',
+        'nvidia/llama-3.1-nemotron-70b-instruct',
         'meta/llama-3.1-8b-instruct',
         'mistralai/mistral-7b-instruct-v0.3',
-        'nvidia/llama-3.1-nemotron-70b-instruct',
         'google/gemma-2-9b-it',
-      ]),
+      ]).filter((m) => !/kimi-k2/i.test(m)),
     };
   }
   if (process.env.OPENROUTER_API_KEY) {

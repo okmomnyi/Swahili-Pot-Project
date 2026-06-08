@@ -1,10 +1,63 @@
 'use strict';
 
-const { getNimClient, KIMI_MODEL, SYSTEM_PROMPT } = require('./nimClient');
+const { getNimClient, NIM_MODELS, SYSTEM_PROMPT, isRetriable } = require('./nimClient');
 
 /**
- * Generate the full intelligence profile for one attachee.
- * Returns a parsed JSON object.
+ * Run a chat completion, trying each model in order and falling through on
+ * retriable errors (rate-limit, model-gone/EOL, not-found, 5xx).
+ */
+async function completeWithFallback({ messages, max_tokens, temperature }) {
+  const client = getNimClient();
+  let lastErr = null;
+  for (const model of NIM_MODELS) {
+    try {
+      const response = await client.chat.completions.create({
+        model,
+        max_tokens,
+        temperature,
+        messages,
+      });
+      const content = response.choices?.[0]?.message?.content;
+      if (content && content.trim()) return content.trim();
+      lastErr = new Error(`Model ${model} returned no content`);
+    } catch (err) {
+      lastErr = err;
+      const status = err.status || err.response?.status;
+      if (status === 401 || status === 403) throw err; // key problem — stop
+      if (!isRetriable(status)) throw err;
+      // otherwise: try the next model
+    }
+  }
+  throw lastErr || new Error('All AI models failed');
+}
+
+/**
+ * Open a streaming chat completion, trying each model until one starts.
+ */
+async function streamWithFallback({ messages, max_tokens, temperature }) {
+  const client = getNimClient();
+  let lastErr = null;
+  for (const model of NIM_MODELS) {
+    try {
+      return await client.chat.completions.create({
+        model,
+        max_tokens,
+        temperature,
+        messages,
+        stream: true,
+      });
+    } catch (err) {
+      lastErr = err;
+      const status = err.status || err.response?.status;
+      if (status === 401 || status === 403) throw err;
+      if (!isRetriable(status)) throw err;
+    }
+  }
+  throw lastErr || new Error('All AI models failed');
+}
+
+/**
+ * Generate the full intelligence profile for one attachee. Returns parsed JSON.
  */
 async function generateAttacheeProfile(attacheeContext) {
   const prompt = `You are producing a DETAILED, comprehensive attachee intelligence profile for a supervisor to make quality assessments. Be thorough and specific — cite the actual numbers from the data (attendance counts, percentages, arrival times, streaks, trends) in your reasoning. Longer, evidence-backed assessments are strongly preferred over short ones.
@@ -45,17 +98,15 @@ Rules:
 - If data is thin, say so honestly in the relevant fields and keep confidence modest — but still fill every field.
 - Return ONLY the JSON object.`;
 
-  const response = await getNimClient().chat.completions.create({
-    model: KIMI_MODEL,
-    max_tokens: 4000,
-    temperature: 0.5,
+  const raw = await completeWithFallback({
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: prompt },
     ],
+    max_tokens: 4000,
+    temperature: 0.5,
   });
 
-  const raw = response.choices[0].message.content.trim();
   // Strip markdown fences and isolate the JSON object if the model adds prose.
   let clean = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
   const first = clean.indexOf('{');
@@ -66,7 +117,6 @@ Rules:
 
 /**
  * Generate a narrative paragraph block for a progress or completion report.
- * Returns a plain string.
  */
 async function generateReportNarrative(attacheeContext, reportType) {
   const isCompletion = reportType === 'completion';
@@ -92,17 +142,14 @@ Rules:
 - Use the attachee's actual name throughout.
 - Output body paragraphs only — no salutation, no sign-off, no headers.`;
 
-  const response = await getNimClient().chat.completions.create({
-    model: KIMI_MODEL,
-    max_tokens: 1200,
-    temperature: 0.6,
+  return completeWithFallback({
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: prompt },
     ],
+    max_tokens: 1200,
+    temperature: 0.6,
   });
-
-  return response.choices[0].message.content.trim();
 }
 
 /**
@@ -119,13 +166,7 @@ async function streamSupervisorAnswer({ question, departmentContext, chatHistory
     },
   ];
 
-  const stream = await getNimClient().chat.completions.create({
-    model: KIMI_MODEL,
-    max_tokens: 600,
-    temperature: 0.6,
-    messages,
-    stream: true,
-  });
+  const stream = await streamWithFallback({ messages, max_tokens: 600, temperature: 0.6 });
 
   let fullText = '';
   for await (const chunk of stream) {

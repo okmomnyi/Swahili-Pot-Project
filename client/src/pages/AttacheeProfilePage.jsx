@@ -147,7 +147,7 @@ export default function AttacheeProfilePage() {
             {profile.generated_at
               ? `Generated ${new Date(profile.generated_at).toLocaleDateString('en-KE', { dateStyle: 'medium' })} · `
               : ''}
-            Powered by Kimi K2 via NVIDIA NIM
+            Powered by NVIDIA NIM
           </p>
         </div>
       )}
