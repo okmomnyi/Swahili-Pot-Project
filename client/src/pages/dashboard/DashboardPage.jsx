@@ -19,6 +19,7 @@ import { useAuth } from '../../context/AuthContext';
 import AttacheeDashboard from '../attachee/AttacheeDashboard';
 import ActivityFeed from '../../components/dashboard/ActivityFeed';
 import AnnouncementsPreview from '../../components/dashboard/AnnouncementsPreview';
+import SupervisorAssistant from '../../components/ai/SupervisorAssistant';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Spinner from '../../components/ui/Spinner';
@@ -222,6 +223,8 @@ function StaffDashboard({ user }) {
           </div>
         )}
       </div>
+
+      {user.role === 'supervisor' && <SupervisorAssistant />}
     </div>
   );
 }

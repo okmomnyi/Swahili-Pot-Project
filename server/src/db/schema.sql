@@ -302,6 +302,56 @@ CREATE TABLE IF NOT EXISTS program_enrollments (
   UNIQUE (program_id, trainee_id)
 );
 
+-- =====================================================================
+-- AI Attachee Intelligence Layer (NVIDIA NIM / Kimi K2).
+-- Attachee = a trainees row. IDs are integers (SERIAL), matching the
+-- rest of the schema (the AI spec's UUID/extra-column shape does not).
+-- =====================================================================
+
+-- Cached per-trainee AI intelligence profiles (regenerated on demand).
+CREATE TABLE IF NOT EXISTS attachee_ai_profiles (
+  id                  SERIAL PRIMARY KEY,
+  attachee_id         INTEGER NOT NULL REFERENCES trainees(id) ON DELETE CASCADE,
+  department_id       INTEGER NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
+  generated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  strengths           TEXT,            -- JSON array string
+  weaknesses          TEXT,            -- JSON array string
+  behavioral_patterns TEXT,            -- JSON array string
+  skill_tags          TEXT[],
+  career_paths        JSONB,           -- [{title, confidence, reasoning, next_steps}]
+  summary             TEXT,
+  details             JSONB,           -- full rich profile object (all sections)
+  raw_context_hash    TEXT,            -- SHA-256 of the context used (stale-cache detection)
+  UNIQUE (attachee_id)
+);
+
+-- Supervisor AI chat history (last 10 messages used as context).
+CREATE TABLE IF NOT EXISTS supervisor_ai_chats (
+  id            SERIAL PRIMARY KEY,
+  supervisor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  department_id INTEGER NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
+  role          VARCHAR(16) NOT NULL CHECK (role IN ('user', 'assistant')),
+  content       TEXT NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_supervisor_chats_sup ON supervisor_ai_chats (supervisor_id, created_at DESC);
+
+-- AI-generated report drafts (supervisor edits before PDF export).
+CREATE TABLE IF NOT EXISTS ai_reports (
+  id               SERIAL PRIMARY KEY,
+  attachee_id      INTEGER NOT NULL REFERENCES trainees(id) ON DELETE CASCADE,
+  department_id    INTEGER NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
+  report_type      VARCHAR(32) NOT NULL CHECK (report_type IN ('progress', 'completion')),
+  generated_by     INTEGER NOT NULL REFERENCES users(id),
+  generated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ai_narrative     TEXT NOT NULL,
+  supervisor_edits TEXT,
+  status           VARCHAR(16) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'finalized'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_reports_attachee ON ai_reports (attachee_id);
+
 -- ---- Part 10: Visitor / walk-in log ----
 CREATE TABLE IF NOT EXISTS visitor_log (
   id SERIAL PRIMARY KEY,

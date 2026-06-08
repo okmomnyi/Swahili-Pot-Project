@@ -52,6 +52,9 @@ async function runOnce() {
     await client.query('ALTER TABLE downtime_reports ADD COLUMN IF NOT EXISTS is_escalated BOOLEAN NOT NULL DEFAULT false');
     await client.query('ALTER TABLE downtime_reports ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMPTZ');
 
+    // --- AI intelligence: full rich profile blob (added after the table) ---
+    await client.query('ALTER TABLE attachee_ai_profiles ADD COLUMN IF NOT EXISTS details JSONB');
+
     // --- Part 9: optional program links on existing tables ---
     await client.query('ALTER TABLE attendance_sessions ADD COLUMN IF NOT EXISTS program_id INTEGER REFERENCES programs(id) ON DELETE SET NULL');
     await client.query('ALTER TABLE tasks ADD COLUMN IF NOT EXISTS program_id INTEGER REFERENCES programs(id) ON DELETE SET NULL');

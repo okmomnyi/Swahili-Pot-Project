@@ -40,6 +40,9 @@ const envSchema = z.object({
   NVIDIA_BASE_URL: z.string().url('NVIDIA_BASE_URL must be a valid URL').optional(),
   OPENROUTER_API_KEY: z.string().optional(),
   OPENROUTER_MODEL: z.string().optional(),
+  // AI Attachee Intelligence Layer (NVIDIA NIM / Kimi K2). Optional so the
+  // server still boots without it — the AI endpoints return 503 until it's set.
+  NVIDIA_NIM_API_KEY: z.string().optional(),
   // Verified sender. Falls back to SMTP_FROM if not set.
   MAIL_FROM_EMAIL: z.string().optional(),
   MAIL_FROM_NAME: z.string().optional(),

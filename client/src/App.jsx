@@ -32,6 +32,8 @@ import PerformancePage from './pages/performance/PerformancePage';
 import CertificatesPage from './pages/certificates/CertificatesPage';
 import ProgramsPage from './pages/programs/ProgramsPage';
 import VisitorLogPage from './pages/visitors/VisitorLogPage';
+import AttacheeProfilePage from './pages/AttacheeProfilePage';
+import AIReportsPage from './pages/AIReportsPage';
 import TermsPage from './pages/legal/TermsPage';
 import PrivacyPage from './pages/legal/PrivacyPage';
 
@@ -112,6 +114,24 @@ export default function App() {
           element={
             <RoleRoute roles={['supervisor', 'instructor', 'admin']}>
               <VisitorLogPage />
+            </RoleRoute>
+          }
+        />
+
+        {/* AI Attachee Intelligence Layer */}
+        <Route
+          path="/ai/attachees/:attacheeId/profile"
+          element={
+            <RoleRoute roles={['instructor', 'supervisor']}>
+              <AttacheeProfilePage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/ai/reports/new"
+          element={
+            <RoleRoute roles={['supervisor']}>
+              <AIReportsPage />
             </RoleRoute>
           }
         />
