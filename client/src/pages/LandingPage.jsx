@@ -8,6 +8,7 @@ import {
 import { getSiteContent, mediaUrl } from '../api/site';
 import Logo from '../components/ui/Logo';
 import Spinner from '../components/ui/Spinner';
+import ChatWidget from '../components/ui/ChatWidget';
 import { SITE_FALLBACK } from '../lib/siteFallback';
 
 const PROGRAM_GRADIENTS = [
@@ -509,6 +510,8 @@ export default function LandingPage() {
           © {new Date().getFullYear()} Swahilipot Hub Foundation. Empowering youth through technology, arts &amp; impact.
         </div>
       </footer>
+
+      <ChatWidget />
     </div>
   );
 }
