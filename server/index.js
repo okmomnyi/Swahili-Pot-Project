@@ -21,8 +21,9 @@ async function start() {
   // 3. Verify file storage so misconfiguration shows up clearly in the logs.
   await checkS3();
 
-  // 3b. Log the active email provider.
+  // 3b. Log the active email + chat providers.
   logMailConfig();
+  require('./src/routes/chat').logChatConfig();
 
   // 4. Start the server.
   app.listen(env.PORT, () => {
