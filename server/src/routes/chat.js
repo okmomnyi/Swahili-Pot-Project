@@ -10,14 +10,18 @@ const router = express.Router();
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 // Tried in order — free models often get rate-limited upstream, so we fall
-// back to the next one on a 429/5xx. OPENROUTER_MODEL (if set) goes first.
+// back to the next on a 429/5xx (invalid models return 400 and are skipped).
+// Lead with smaller, less-congested models on different providers; the very
+// popular llama-3.3-70b goes LAST because it's the most rate-limited.
+// OPENROUTER_MODEL (if set, e.g. a paid model) is always tried first.
 const FALLBACK_MODELS = [
   process.env.OPENROUTER_MODEL,
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'meta-llama/llama-3.1-8b-instruct:free',
   'mistralai/mistral-7b-instruct:free',
   'google/gemma-2-9b-it:free',
+  'meta-llama/llama-3.1-8b-instruct:free',
+  'deepseek/deepseek-chat-v3-0324:free',
   'qwen/qwen-2.5-7b-instruct:free',
+  'meta-llama/llama-3.3-70b-instruct:free',
 ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
 const MAX_MESSAGES = 12;   // only keep the tail of the conversation
