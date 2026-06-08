@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Radio, Plus, FileDown } from 'lucide-react';
+import { Radio, Plus, FileDown, AlertTriangle } from 'lucide-react';
 import {
   getDowntimeReports,
   createDowntimeReport,
@@ -132,8 +132,20 @@ export default function DowntimePage() {
     });
   }
 
+  const escalatedCount = reports.filter((r) => r.is_escalated).length;
+
   return (
     <div className="space-y-5">
+      {escalatedCount > 0 && (
+        <div className="flex items-center gap-3 rounded-xl border border-[#fcd34d] bg-[#fffbeb] px-4 py-3">
+          <AlertTriangle size={20} className="shrink-0 text-[#d97706]" />
+          <p className="text-sm text-[#92400e]">
+            {escalatedCount} report{escalatedCount > 1 ? 's have' : ' has'} been open for over 2 hours and
+            escalated to admin.
+          </p>
+        </div>
+      )}
+
       <div className="flex justify-end gap-2">
         <Button variant="secondary" onClick={handleExport} disabled={reports.length === 0}>
           <FileDown size={16} /> Export PDF
@@ -167,6 +179,7 @@ export default function DowntimePage() {
                     <p className="font-medium text-ink">{r.frequency_band}</p>
                     <Badge status={r.severity} />
                     <Badge status={r.status} />
+                    {r.is_escalated && r.status === 'open' && <Badge variant="red">Escalated</Badge>}
                   </div>
                   {isSupervisor && r.instructor_name && (
                     <p className="mt-1 text-xs text-subtle">Reported by {r.instructor_name}</p>

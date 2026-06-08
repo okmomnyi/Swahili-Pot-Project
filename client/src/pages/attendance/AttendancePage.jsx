@@ -7,6 +7,7 @@ import {
 import {
   createSession, getSessions, deleteSession, getRecordsRange,
 } from '../../api/attendance';
+import { getPrograms } from '../../api/programs';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { formatEAT } from '../../lib/datetime';
@@ -14,6 +15,7 @@ import { exportTablePdf } from '../../lib/pdf';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import Select from '../../components/ui/Select';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import Spinner from '../../components/ui/Spinner';
@@ -44,6 +46,8 @@ export default function AttendancePage() {
   const qrRef = useRef(null);
 
   const [label, setLabel] = useState('');
+  const [programId, setProgramId] = useState('');
+  const [programs, setPrograms] = useState([]);
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -70,6 +74,7 @@ export default function AttendancePage() {
 
   useEffect(() => {
     load();
+    getPrograms().then((res) => setPrograms(res.data.programs.filter((p) => p.is_active))).catch(() => {});
   }, []);
 
   // Keep the QR pointed at a still-valid active session (default: latest active).
@@ -86,9 +91,10 @@ export default function AttendancePage() {
   async function handleGenerate() {
     setGenerating(true);
     try {
-      const res = await createSession({ session_label: label.trim() });
+      const res = await createSession({ session_label: label.trim(), program_id: programId || null });
       setQrSession(res.data.session);
       setLabel('');
+      setProgramId('');
       show('Attendance session created');
       await load();
     } catch (err) {
@@ -214,6 +220,18 @@ export default function AttendancePage() {
               value={label}
               onChange={(e) => setLabel(e.target.value)}
             />
+            {programs.length > 0 && (
+              <Select
+                label="Program (optional)"
+                value={programId}
+                onChange={(e) => setProgramId(e.target.value)}
+              >
+                <option value="">No program</option>
+                {programs.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </Select>
+            )}
             <Button onClick={handleGenerate} disabled={generating} className="w-full">
               <QrCode size={16} />
               {generating ? 'Generating…' : 'Generate QR Code'}

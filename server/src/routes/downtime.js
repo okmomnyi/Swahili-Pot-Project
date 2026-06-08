@@ -5,6 +5,7 @@ const pool = require('../db/pool');
 const verifyToken = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
 const { notifyUser, notifyDepartmentSupervisors } = require('../lib/notify');
+const logActivity = require('../utils/logActivity');
 
 const router = express.Router();
 
@@ -37,7 +38,8 @@ router.get('/', verifyToken, requireRadioDepartment, async (req, res, next) => {
     if (req.user.role === 'instructor') {
       const { rows } = await pool.query(
         `SELECT id, instructor_id, frequency_band, description, severity, status,
-                resolved_by, resolution_note, reported_at, resolved_at
+                resolved_by, resolution_note, reported_at, resolved_at,
+                is_escalated, escalated_at
            FROM downtime_reports
           WHERE instructor_id = $1
           ORDER BY reported_at DESC`,
@@ -50,6 +52,7 @@ router.get('/', verifyToken, requireRadioDepartment, async (req, res, next) => {
     const { rows } = await pool.query(
       `SELECT dr.id, dr.instructor_id, dr.frequency_band, dr.description, dr.severity, dr.status,
               dr.resolved_by, dr.resolution_note, dr.reported_at, dr.resolved_at,
+              dr.is_escalated, dr.escalated_at,
               u.name AS instructor_name
          FROM downtime_reports dr
          JOIN users u ON u.id = dr.instructor_id
@@ -95,6 +98,16 @@ router.post('/', verifyToken, requireRadioDepartment, requireRole('instructor'),
       link: '/downtime',
     });
 
+    await logActivity({
+      department_id: req.user.department_id,
+      actor_id: req.user.id,
+      actor_name: req.user.name,
+      action_type: 'downtime_reported',
+      entity_type: 'downtime_report',
+      entity_id: report.id,
+      description: `${req.user.name} reported a ${report.severity} downtime on ${report.frequency_band}`,
+    });
+
     return res.status(201).json({ report });
   } catch (err) {
     return next(err);
@@ -136,6 +149,16 @@ router.patch('/:id/resolve', verifyToken, requireRadioDepartment, requireRole('s
       title: 'Downtime report resolved',
       body: `Your report on ${report.frequency_band} was marked resolved.`,
       link: '/downtime',
+    });
+
+    await logActivity({
+      department_id: req.user.department_id,
+      actor_id: req.user.id,
+      actor_name: req.user.name,
+      action_type: 'downtime_resolved',
+      entity_type: 'downtime_report',
+      entity_id: report.id,
+      description: `${req.user.name} resolved the downtime report for ${report.frequency_band}`,
     });
 
     return res.json({ report });

@@ -25,6 +25,13 @@ import TasksPage from './pages/tasks/TasksPage';
 import InquiriesPage from './pages/inquiries/InquiriesPage';
 import RemindersPage from './pages/attachee/RemindersPage';
 import AttacheesPage from './pages/attachees/AttacheesPage';
+import SupervisorAttendancePage from './pages/attendance/SupervisorAttendancePage';
+import AnnouncementsPage from './pages/announcements/AnnouncementsPage';
+import SessionLogsPage from './pages/sessionLogs/SessionLogsPage';
+import PerformancePage from './pages/performance/PerformancePage';
+import CertificatesPage from './pages/certificates/CertificatesPage';
+import ProgramsPage from './pages/programs/ProgramsPage';
+import VisitorLogPage from './pages/visitors/VisitorLogPage';
 import TermsPage from './pages/legal/TermsPage';
 import PrivacyPage from './pages/legal/PrivacyPage';
 
@@ -54,6 +61,60 @@ export default function App() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
+
+        {/* Announcements — all authenticated roles */}
+        <Route path="/announcements" element={<AnnouncementsPage />} />
+
+        {/* Supervisor department-wide attendance overview */}
+        <Route
+          path="/dept-attendance"
+          element={
+            <RoleRoute roles={['supervisor']}>
+              <SupervisorAttendancePage />
+            </RoleRoute>
+          }
+        />
+
+        <Route
+          path="/session-logs"
+          element={
+            <RoleRoute roles={['instructor', 'supervisor']}>
+              <SessionLogsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/performance"
+          element={
+            <RoleRoute roles={['supervisor']}>
+              <PerformancePage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/certificates"
+          element={
+            <RoleRoute roles={['supervisor', 'admin']}>
+              <CertificatesPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/programs"
+          element={
+            <RoleRoute roles={['supervisor', 'instructor']}>
+              <ProgramsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/visitors"
+          element={
+            <RoleRoute roles={['supervisor', 'instructor', 'admin']}>
+              <VisitorLogPage />
+            </RoleRoute>
+          }
+        />
 
         <Route
           path="/trainees"

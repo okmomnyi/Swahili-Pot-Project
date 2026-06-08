@@ -12,6 +12,12 @@ import {
   GraduationCap,
   MessageSquare,
   AlarmClock,
+  Megaphone,
+  BookOpen,
+  Layers,
+  ClipboardList,
+  BarChart2,
+  Award,
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -31,8 +37,13 @@ function buildNav(user) {
   if (user.role === 'admin') {
     items.push({ to: '/users', label: 'User Management', icon: ShieldCheck });
     items.push({ to: '/site', label: 'Website Content', icon: Globe });
+    items.push({ to: '/visitors', label: 'Visitor Log', icon: ClipboardList });
+    items.push({ to: '/certificates', label: 'Certificates', icon: Award });
     return items;
   }
+
+  // Announcements — directly below Dashboard for all department roles.
+  items.push({ to: '/announcements', label: 'Announcements', icon: Megaphone });
 
   // Attachee (intern) portal.
   if (user.role === 'attachee') {
@@ -48,6 +59,13 @@ function buildNav(user) {
     items.push({ to: '/trainees', label: 'Trainees', icon: Users });
     items.push({ to: '/attendance', label: 'Attendance', icon: ClipboardCheck });
   }
+  if (user.role === 'supervisor') {
+    items.push({ to: '/dept-attendance', label: 'Attendance', icon: ClipboardCheck });
+  }
+
+  items.push({ to: '/session-logs', label: 'Session Logs', icon: BookOpen });
+  items.push({ to: '/programs', label: 'Programs', icon: Layers });
+  items.push({ to: '/visitors', label: 'Visitor Log', icon: ClipboardList });
 
   items.push({ to: '/submissions', label: 'Submissions', icon: FileText });
   items.push({ to: '/tasks', label: 'Tasks', icon: ListTodo });
@@ -60,6 +78,8 @@ function buildNav(user) {
 
   if (user.role === 'supervisor') {
     items.push({ to: '/instructors', label: 'Instructors', icon: UserCog });
+    items.push({ to: '/performance', label: 'Performance', icon: BarChart2 });
+    items.push({ to: '/certificates', label: 'Certificates', icon: Award });
   }
 
   return items;

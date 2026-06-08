@@ -10,6 +10,7 @@ const requireRole = require('../middleware/requireRole');
 const upload = require('../middleware/upload');
 const { getS3, S3_BUCKET } = require('../lib/s3');
 const { notifyUser, notifyDepartmentSupervisors } = require('../lib/notify');
+const logActivity = require('../utils/logActivity');
 
 const router = express.Router();
 
@@ -149,6 +150,16 @@ router.post(
         link: '/submissions',
       });
 
+      await logActivity({
+        department_id: req.user.department_id,
+        actor_id: req.user.id,
+        actor_name: req.user.name,
+        action_type: 'submission_filed',
+        entity_type: 'submission',
+        entity_id: submission.id,
+        description: `${req.user.name} submitted a ${submission.form_type}: ${submission.title}`,
+      });
+
       return res.status(201).json({ submission });
     } catch (err) {
       return next(err);
@@ -185,6 +196,17 @@ router.patch('/:id/acknowledge', verifyToken, requireRole('supervisor'), async (
       title: 'Submission acknowledged',
       body: `Your submission "${submission.title}" was acknowledged.`,
       link: '/submissions',
+    });
+
+    const ackFiler = await pool.query('SELECT name FROM users WHERE id = $1', [submission.instructor_id]);
+    await logActivity({
+      department_id: req.user.department_id,
+      actor_id: req.user.id,
+      actor_name: req.user.name,
+      action_type: 'submission_acknowledged',
+      entity_type: 'submission',
+      entity_id: submission.id,
+      description: `${req.user.name} acknowledged ${submission.title} submitted by ${ackFiler.rows[0]?.name || 'a colleague'}`,
     });
 
     return res.json({ submission });
@@ -224,6 +246,17 @@ router.patch('/:id/return', verifyToken, requireRole('supervisor'), async (req, 
       title: 'Submission returned',
       body: `Your submission "${submission.title}" was returned. ${submission.supervisor_note || ''}`.trim(),
       link: '/submissions',
+    });
+
+    const retFiler = await pool.query('SELECT name FROM users WHERE id = $1', [submission.instructor_id]);
+    await logActivity({
+      department_id: req.user.department_id,
+      actor_id: req.user.id,
+      actor_name: req.user.name,
+      action_type: 'submission_returned',
+      entity_type: 'submission',
+      entity_id: submission.id,
+      description: `${req.user.name} returned ${submission.title} to ${retFiler.rows[0]?.name || 'a colleague'} with feedback`,
     });
 
     return res.json({ submission });

@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const pool = require('../db/pool');
 const verifyToken = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
+const logActivity = require('../utils/logActivity');
 
 const router = express.Router();
 
@@ -52,6 +53,16 @@ router.post('/instructors', verifyToken, requireRole('supervisor'), async (req, 
        RETURNING id, name, email, role, department_id, is_active, created_at`,
       [name.trim(), normalizedEmail, passwordHash, req.user.department_id]
     );
+
+    await logActivity({
+      department_id: req.user.department_id,
+      actor_id: req.user.id,
+      actor_name: req.user.name,
+      action_type: 'instructor_added',
+      entity_type: 'user',
+      entity_id: rows[0].id,
+      description: `Supervisor ${req.user.name} added instructor ${rows[0].name} to the department`,
+    });
 
     return res.status(201).json({ instructor: rows[0] });
   } catch (err) {
