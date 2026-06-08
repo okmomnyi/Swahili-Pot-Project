@@ -33,6 +33,9 @@ const envSchema = z.object({
   SMTP_FROM: z.string().optional(),
   // Brevo transactional HTTP API key — preferred on hosts that block SMTP ports.
   BREVO_API_KEY: z.string().optional(),
+  // OpenRouter (the Q&A chatbot). If unset, the chat endpoint is disabled.
+  OPENROUTER_API_KEY: z.string().optional(),
+  OPENROUTER_MODEL: z.string().optional(),
   // Verified sender. Falls back to SMTP_FROM if not set.
   MAIL_FROM_EMAIL: z.string().optional(),
   MAIL_FROM_NAME: z.string().optional(),

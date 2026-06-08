@@ -20,6 +20,7 @@ const taskRoutes = require('./routes/tasks');
 const attacheeRoutes = require('./routes/attachee');
 const inquiryRoutes = require('./routes/inquiries');
 const siteRoutes = require('./routes/site');
+const chatRoutes = require('./routes/chat');
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/attachee', attacheeRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/site', siteRoutes);
+app.use('/api/chat', chatRoutes);
 
 // 404 fallback for unknown API routes
 app.use('/api', (req, res) => {
