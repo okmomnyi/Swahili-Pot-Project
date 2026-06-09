@@ -16,6 +16,7 @@ const {
 } = require('../services/aiService');
 const logAIUsage = require('../services/aiUsage');
 const { getSetting } = require('../lib/platformSettings');
+const { drawLetterhead, drawSignatureFooter } = require('../lib/pdfBrand');
 
 const router = express.Router();
 
@@ -674,27 +675,17 @@ router.get(
       doc.on('error', next);
       doc.pipe(res);
 
-      // Header
-      const top = doc.y;
-      doc.fillColor(PDF_BRAND).font('Helvetica-Bold').fontSize(20).text('SwahiliPot', { continued: true });
-      doc.fillColor(PDF_INK).font('Helvetica').fontSize(14).text(' Hub Foundation');
-      doc.fillColor(PDF_MUTED).fontSize(9)
-        .text('Swahili Cultural Centre, Sir Mbarak Hinaway Rd, Old Town, Mombasa');
-      doc.text('swahilipothub.co.ke | info@swahilipothub.co.ke');
-      doc.fillColor(PDF_INK).fontSize(10).text(longDatePDF(new Date()), 72, top, { align: 'right' });
-      doc.moveDown(1);
-      let y = doc.y;
-      doc.strokeColor(PDF_BRAND).lineWidth(1).moveTo(72, y).lineTo(doc.page.width - 72, y).stroke();
-      doc.moveDown(1.5);
+      // Branded letterhead (real logo, rule below the address block).
+      drawLetterhead(doc);
 
       // Title + subject
       doc.fillColor(PDF_BRAND).font('Helvetica-Bold').fontSize(14)
-        .text(REPORT_TITLES[report.report_type] || 'ATTACHMENT REPORT', { align: 'center' });
+        .text(REPORT_TITLES[report.report_type] || 'ATTACHMENT REPORT', { align: 'center', characterSpacing: 1 });
       doc.moveDown(0.4);
       doc.fillColor(PDF_INK).font('Helvetica-Bold').fontSize(12).text(report.attachee_name, { align: 'center' });
       doc.fillColor(PDF_MUTED).font('Helvetica').fontSize(10).text(report.department_name, { align: 'center' });
       doc.moveDown(0.8);
-      y = doc.y;
+      const y = doc.y;
       doc.strokeColor('#e2e8f0').lineWidth(1).moveTo(72, y).lineTo(doc.page.width - 72, y).stroke();
       doc.moveDown(1);
 
@@ -714,17 +705,7 @@ router.get(
         }
       }
 
-      // Footer signature
-      doc.moveDown(2);
-      doc.strokeColor('#9ca3af').lineWidth(1).moveTo(72, doc.y).lineTo(72 + 150, doc.y).stroke();
-      doc.moveDown(0.4);
-      doc.fillColor(PDF_INK).font('Helvetica-Bold').fontSize(11).text(report.supervisor_name, 72, doc.y);
-      doc.font('Helvetica').fontSize(10).fillColor(PDF_MUTED).text('Department Supervisor');
-      doc.fontSize(9).fillColor(PDF_MUTED)
-        .text('AI-assisted draft via NVIDIA NIM · reviewed and approved by the supervisor', { align: 'left' });
-
-      const lineY = doc.page.height - 60;
-      doc.strokeColor(PDF_BRAND).lineWidth(1).moveTo(72, lineY).lineTo(doc.page.width - 72, lineY).stroke();
+      drawSignatureFooter(doc, report.supervisor_name, 'Department Supervisor');
 
       doc.end();
     } catch (err) {
@@ -732,14 +713,6 @@ router.get(
     }
   }
 );
-
-const PDF_MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-function longDatePDF(d) {
-  return `${String(d.getUTCDate()).padStart(2, '0')} ${PDF_MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
-}
 
 // ── AI USAGE STATS (SYSTEM ADMIN) ────────────────────────────────────────────
 

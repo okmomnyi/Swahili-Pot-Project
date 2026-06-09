@@ -5,113 +5,145 @@ const PDFDocument = require('pdfkit');
 const pool = require('../db/pool');
 const verifyToken = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
+const {
+  LOGO_PATH, LOGO_ASPECT, BRAND, GOLD, GOLD_LIGHT, INK, MUTED,
+  longDate, drawLetterhead, drawSignatureFooter,
+} = require('../lib/pdfBrand');
 
 const router = express.Router();
 
-const BRAND = '#1e40af';
-const INK = '#374151';
-const MUTED = '#6b7280';
-
 const TYPES = ['attachment_letter', 'completion_certificate'];
 
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-// Format a YYYY-MM-DD (or ISO) string as "dd Month yyyy" without TZ surprises.
-function longDate(value) {
-  if (!value) return '';
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value));
-  if (m) {
-    return `${m[3]} ${MONTHS[parseInt(m[2], 10) - 1]} ${m[1]}`;
+// ---------------------------------------------------------------------------
+// Elegant landscape certificate (used for completion certificates + trainee
+// certificates). Decorative double border, centred logo, serif typography and
+// a drawn seal — inspired by classic completion-certificate layouts.
+// ---------------------------------------------------------------------------
+function drawSeal(doc, cx, cy, r) {
+  doc.save();
+  // ribbon tails
+  doc.fillColor(BRAND);
+  doc.polygon([cx - 7, cy + r - 4], [cx - 17, cy + r + 22], [cx - 3, cy + r + 12]).fill();
+  doc.fillColor('#1e3a8a');
+  doc.polygon([cx + 7, cy + r - 4], [cx + 17, cy + r + 22], [cx + 3, cy + r + 12]).fill();
+  // medallion
+  doc.circle(cx, cy, r).fill(GOLD);
+  doc.circle(cx, cy, r - 4).fill(GOLD_LIGHT);
+  doc.lineWidth(1.2).strokeColor('#ffffff').circle(cx, cy, r - 8).stroke();
+  // simple star in the centre
+  const pts = [];
+  for (let i = 0; i < 10; i++) {
+    const ang = -Math.PI / 2 + (i * Math.PI) / 5;
+    const rad = i % 2 === 0 ? r - 11 : (r - 11) / 2.4;
+    pts.push([cx + rad * Math.cos(ang), cy + rad * Math.sin(ang)]);
   }
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return `${String(d.getUTCDate()).padStart(2, '0')} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  doc.fillColor('#ffffff').polygon(...pts).fill();
+  doc.restore();
 }
 
-function drawHeader(doc) {
-  const top = doc.y;
-  // Logo (text based)
-  doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(20).text('SwahiliPot', { continued: true });
-  doc.fillColor(INK).font('Helvetica').fontSize(14).text(' Hub Foundation');
-  doc
-    .fillColor(MUTED)
-    .fontSize(9)
-    .text('Swahili Cultural Centre, Sir Mbarak Hinaway Rd, Old Town, Mombasa');
-  doc.text('swahilipothub.co.ke | info@swahilipothub.co.ke');
+function drawCertificate(doc, { title, recipient, bodyLines, dept, leftSig, rightSig, dateStr }) {
+  const W = doc.page.width;
+  const H = doc.page.height;
 
-  // Right-aligned generation date
-  doc
-    .fillColor(INK)
-    .fontSize(10)
-    .text(longDate(new Date().toISOString()), 72, top, { align: 'right' });
+  // Decorative double border.
+  doc.save();
+  doc.lineWidth(3).strokeColor(BRAND).roundedRect(26, 26, W - 52, H - 52, 10).stroke();
+  doc.lineWidth(1).strokeColor(GOLD).roundedRect(36, 36, W - 72, H - 72, 8).stroke();
+  // corner accents
+  doc.lineWidth(2).strokeColor(GOLD);
+  [[36, 36, 1, 1], [W - 36, 36, -1, 1], [36, H - 36, 1, -1], [W - 36, H - 36, -1, -1]].forEach(([x, y, sx, sy]) => {
+    doc.moveTo(x + sx * 6, y + sy * 26).lineTo(x + sx * 6, y + sy * 6).lineTo(x + sx * 26, y + sy * 6).stroke();
+  });
+  doc.restore();
 
-  doc.moveDown(1);
-  const y = doc.y;
-  doc.strokeColor(BRAND).lineWidth(1).moveTo(72, y).lineTo(doc.page.width - 72, y).stroke();
-  doc.moveDown(1.5);
+  const cx = W / 2;
+
+  // Logo, centred.
+  const logoW = 210;
+  const logoH = logoW / LOGO_ASPECT;
+  try {
+    doc.image(LOGO_PATH, cx - logoW / 2, 58, { width: logoW });
+  } catch {
+    doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(22).text('SwahiliPot Hub Foundation', 0, 64, { align: 'center', width: W });
+  }
+  let y = 58 + logoH + 14;
+
+  doc.fillColor(MUTED).font('Helvetica').fontSize(9)
+    .text('Swahilipot Hub Foundation · Mombasa, Kenya', 0, y, { align: 'center', width: W });
+  y += 26;
+
+  // Title.
+  doc.fillColor(BRAND).font('Times-Bold').fontSize(30)
+    .text(title.toUpperCase(), 0, y, { align: 'center', characterSpacing: 3, width: W });
+  y += 42;
+
+  doc.fillColor(MUTED).font('Times-Italic').fontSize(12)
+    .text('This certificate is proudly presented to', 0, y, { align: 'center', width: W });
+  y += 30;
+
+  // Recipient name.
+  doc.fillColor(INK).font('Times-BoldItalic').fontSize(34)
+    .text(recipient, 0, y, { align: 'center', width: W });
+  y = doc.y + 4;
+  // underline under the name
+  const nameW = Math.min(360, doc.widthOfString(recipient) + 80);
+  doc.lineWidth(1).strokeColor(GOLD).moveTo(cx - nameW / 2, y).lineTo(cx + nameW / 2, y).stroke();
+  y += 22;
+
+  // Body.
+  doc.fillColor(INK).font('Times-Roman').fontSize(13);
+  for (const line of bodyLines) {
+    doc.text(line, 110, y, { align: 'center', width: W - 220, lineGap: 3 });
+    y = doc.y + 6;
+  }
+
+  // Seal.
+  drawSeal(doc, cx, H - 150, 26);
+
+  // Signatures.
+  const sigY = H - 96;
+  const colW = 200;
+  const leftX = 90;
+  const rightX = W - 90 - colW;
+  doc.lineWidth(0.8).strokeColor('#9ca3af');
+  doc.moveTo(leftX, sigY).lineTo(leftX + colW, sigY).stroke();
+  doc.moveTo(rightX, sigY).lineTo(rightX + colW, sigY).stroke();
+  doc.fillColor(INK).font('Helvetica-Bold').fontSize(11).text(leftSig.name, leftX, sigY + 6, { width: colW, align: 'center' });
+  doc.fillColor(MUTED).font('Helvetica').fontSize(9).text(leftSig.title, leftX, doc.y, { width: colW, align: 'center' });
+  doc.fillColor(INK).font('Helvetica-Bold').fontSize(11).text(rightSig.name, rightX, sigY + 6, { width: colW, align: 'center' });
+  doc.fillColor(MUTED).font('Helvetica').fontSize(9).text(rightSig.title, rightX, doc.y, { width: colW, align: 'center' });
+
+  if (dept) {
+    doc.fillColor(MUTED).font('Helvetica').fontSize(8.5)
+      .text(`${dept} · Issued ${dateStr}`, 0, H - 50, { align: 'center', width: W });
+  }
 }
 
-function drawFooter(doc, supervisorName, supervisorTitle) {
-  const bottom = doc.page.height - 130;
-  doc.y = bottom;
-  doc.strokeColor('#9ca3af').lineWidth(1).moveTo(72, doc.y).lineTo(72 + 150, doc.y).stroke();
-  doc.moveDown(0.4);
-  doc.fillColor(INK).font('Helvetica-Bold').fontSize(11).text(supervisorName, 72, doc.y);
-  doc.font('Helvetica').fontSize(10).fillColor(MUTED).text(supervisorTitle);
-  doc
-    .fontSize(10)
-    .fillColor(INK)
-    .text('Swahilipot Hub Foundation, Mombasa', 72, doc.y - 24, { align: 'right' });
-
-  const lineY = doc.page.height - 60;
-  doc.strokeColor(BRAND).lineWidth(1).moveTo(72, lineY).lineTo(doc.page.width - 72, lineY).stroke();
-}
-
+// ---------------------------------------------------------------------------
+// Portrait attachment letter (formal letter, not a certificate).
+// ---------------------------------------------------------------------------
 function attachmentLetterBody(doc, d) {
-  doc.fillColor(INK).font('Helvetica-Bold').fontSize(11).text('TO WHOM IT MAY CONCERN', { align: 'center' });
+  doc.fillColor(INK).font('Helvetica-Bold').fontSize(12).text('TO WHOM IT MAY CONCERN', { align: 'center' });
   doc.moveDown(1.5);
-
   const idNo = d.attachee_id_number || 'N/A';
   doc.font('Helvetica').fontSize(11).fillColor(INK);
   doc.text(
-    `This is to certify that ${d.attachee_name} (ID No: ${idNo}) has been an attachee at ` +
-      `Swahilipot Hub Foundation, ${d.department_name}, from ${longDate(d.start_date)} to ` +
-      `${longDate(d.end_date)}, where they undertook the ${d.program_name} program.`,
+    `This is to certify that ${d.attachee_name} (ID No: ${idNo}) has undertaken an industrial ` +
+      `attachment at Swahilipot Hub Foundation, ${d.department_name}, from ${longDate(d.start_date)} ` +
+      `to ${longDate(d.end_date)}, in the ${d.program_name} programme.`,
     { align: 'justify', lineGap: 3 }
   );
   doc.moveDown(1);
   doc.text(
-    `During their attachment period, ${d.attachee_name} demonstrated commitment and actively ` +
-      `participated in the program activities of the ${d.department_name} department.`,
+    `During this period, ${d.attachee_name} demonstrated commitment and actively participated in the ` +
+      `activities of the ${d.department_name} department, gaining practical, hands-on experience.`,
     { align: 'justify', lineGap: 3 }
   );
   doc.moveDown(1);
-  doc.text('We wish them well in their future endeavors.', { align: 'justify', lineGap: 3 });
-}
-
-function completionCertificateBody(doc, d) {
-  doc.moveDown(1);
-  doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(18).text('CERTIFICATE OF COMPLETION', { align: 'center' });
-  doc.moveDown(2);
-  doc.fillColor(INK).font('Helvetica').fontSize(11).text('This is to certify that', { align: 'center' });
-  doc.moveDown(0.6);
-  doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(16).text(d.attachee_name, { align: 'center', underline: true });
-  doc.moveDown(0.6);
-  doc.fillColor(INK).font('Helvetica').fontSize(11).text('has successfully completed the', { align: 'center' });
-  doc.moveDown(0.6);
-  doc.font('Helvetica-Bold').fontSize(13).text(d.program_name, { align: 'center' });
-  doc.moveDown(0.6);
-  doc.font('Helvetica').fontSize(11).text(`at Swahilipot Hub Foundation, ${d.department_name}`, { align: 'center' });
-  doc.moveDown(0.4);
-  doc.text(`from ${longDate(d.start_date)} to ${longDate(d.end_date)}`, { align: 'center' });
+  doc.text('We wish them every success in their future endeavours.', { align: 'justify', lineGap: 3 });
 }
 
 // POST /api/certificates/generate — supervisor only, streams a PDF.
-// For attachees: pass attachee_id and the name/university/course/dates/department
-// are pulled from users + attachee_profiles (manual body fields still override).
 router.post('/generate', verifyToken, requireRole('supervisor'), async (req, res, next) => {
   try {
     const d = { ...(req.body || {}) };
@@ -129,7 +161,6 @@ router.post('/generate', verifyToken, requireRole('supervisor'), async (req, res
       );
       if (!rows.length) return res.status(404).json({ error: 'Attachee not found' });
       const att = rows[0];
-      // DB values fill in any field not explicitly provided in the body.
       d.attachee_name = d.attachee_name || att.name;
       d.department_name = d.department_name || att.department_name;
       d.program_name = d.program_name || att.course_of_study || 'Industrial Attachment';
@@ -152,30 +183,45 @@ router.post('/generate', verifyToken, requireRole('supervisor'), async (req, res
 
     const safeName = String(d.attachee_name).replace(/[^a-z0-9]+/gi, '-');
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${safeName}-${d.certificate_type}.pdf"`
-    );
+    res.setHeader('Content-Disposition', `attachment; filename="${safeName}-${d.certificate_type}.pdf"`);
 
-    const doc = new PDFDocument({ size: 'A4', margin: 72 });
-    doc.on('error', next);
-    doc.pipe(res);
-
-    drawHeader(doc);
     if (d.certificate_type === 'completion_certificate') {
-      completionCertificateBody(doc, d);
+      const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 40 });
+      doc.on('error', next);
+      doc.pipe(res);
+      drawCertificate(doc, {
+        title: 'Certificate of Completion',
+        recipient: d.attachee_name,
+        dept: d.department_name,
+        bodyLines: [
+          `has successfully completed the ${d.program_name} attachment programme`,
+          `at Swahilipot Hub Foundation, ${d.department_name},`,
+          `from ${longDate(d.start_date)} to ${longDate(d.end_date)}.`,
+        ],
+        leftSig: { name: d.supervisor_name, title: d.supervisor_title },
+        rightSig: { name: 'Swahilipot Hub Foundation', title: 'Mombasa, Kenya' },
+        dateStr: longDate(new Date()),
+      });
+      doc.end();
     } else {
+      const doc = new PDFDocument({ size: 'A4', margin: 72 });
+      doc.on('error', next);
+      doc.pipe(res);
+      drawLetterhead(doc);
+      doc.moveDown(1);
+      doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(15)
+        .text('LETTER OF ATTACHMENT', { align: 'center', characterSpacing: 1 });
+      doc.moveDown(1.5);
       attachmentLetterBody(doc, d);
+      drawSignatureFooter(doc, d.supervisor_name, d.supervisor_title);
+      doc.end();
     }
-    drawFooter(doc, d.supervisor_name, d.supervisor_title);
-
-    doc.end();
   } catch (err) {
     return next(err);
   }
 });
 
-// POST /api/certificates/trainee — instructor only. Simple completion
+// POST /api/certificates/trainee — instructor/supervisor. Clean completion
 // certificate for a community learner (trainee), no AI narrative.
 router.post('/trainee', verifyToken, requireRole('instructor', 'supervisor'), async (req, res, next) => {
   try {
@@ -203,27 +249,22 @@ router.post('/trainee', verifyToken, requireRole('instructor', 'supervisor'), as
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${safeName}-completion-certificate.pdf"`);
 
-    const doc = new PDFDocument({ size: 'A4', margin: 72 });
+    const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 40 });
     doc.on('error', next);
     doc.pipe(res);
-
-    drawHeader(doc);
-    doc.moveDown(1);
-    doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(18).text('CERTIFICATE OF COMPLETION', { align: 'center' });
-    doc.moveDown(2);
-    doc.fillColor(INK).font('Helvetica').fontSize(11).text('This is to certify that', { align: 'center' });
-    doc.moveDown(0.6);
-    doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(16).text(tr.name, { align: 'center', underline: true });
-    doc.moveDown(0.6);
-    doc.fillColor(INK).font('Helvetica').fontSize(11).text('has successfully completed the', { align: 'center' });
-    doc.moveDown(0.6);
-    doc.font('Helvetica-Bold').fontSize(13).text(course_name.trim(), { align: 'center' });
-    doc.moveDown(0.6);
-    doc.font('Helvetica').fontSize(11).text(`course at Swahilipot Hub Foundation, ${tr.department_name}`, { align: 'center' });
-    doc.moveDown(0.4);
-    doc.text(`on ${longDate(completion_date)}`, { align: 'center' });
-
-    drawFooter(doc, req.user.name, 'Department Instructor');
+    drawCertificate(doc, {
+      title: 'Certificate of Completion',
+      recipient: tr.name,
+      dept: tr.department_name,
+      bodyLines: [
+        `has successfully completed the ${course_name.trim()} course`,
+        `at Swahilipot Hub Foundation, ${tr.department_name},`,
+        `on ${longDate(completion_date)}.`,
+      ],
+      leftSig: { name: req.user.name, title: 'Department Instructor' },
+      rightSig: { name: 'Swahilipot Hub Foundation', title: 'Mombasa, Kenya' },
+      dateStr: longDate(new Date()),
+    });
     doc.end();
   } catch (err) {
     return next(err);

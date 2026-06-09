@@ -67,7 +67,7 @@ ${attacheeContext}
 
 Respond ONLY with a single valid JSON object — no markdown fences, no extra text, no preamble. Use this EXACT structure:
 {
-  "summary": "A rich 4-6 sentence narrative overall assessment of this attachee, weaving in concrete figures from the data.",
+  "summary": "A rich 3-4 sentence narrative overall assessment of this attachee, weaving in concrete figures from the data.",
   "overall_rating": "one of: Excellent | Strong | Developing | Needs Support",
   "engagement_score": 0-100,
   "headline": "One punchy sentence capturing who this attachee is.",
@@ -82,7 +82,7 @@ Respond ONLY with a single valid JSON object — no markdown fences, no extra te
   "strengths": ["5 to 7 specific, evidence-backed strengths, each citing data"],
   "weaknesses": ["3 to 5 specific growth areas, each grounded in the data"],
   "behavioral_patterns": ["4 to 6 observed patterns (punctuality, rhythm, consistency, day-of-week tendencies, trend)"],
-  "attendance_assessment": "A detailed paragraph (4-6 sentences) analysing attendance volume, consistency, punctuality and trend, citing the numbers.",
+  "attendance_assessment": "A focused paragraph (3-4 sentences) analysing attendance volume, consistency, punctuality and trend, citing the numbers.",
   "punctuality": "A 1-2 sentence assessment of punctuality grounded in arrival-time figures.",
   "consistency": "A 1-2 sentence assessment of consistency grounded in streak/weeks/trend figures.",
   "work_themes": ["themes/skills inferred from the reported 'tasks completed' notes; empty array if none were recorded"],
@@ -112,8 +112,8 @@ Rules:
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: prompt },
     ],
-    max_tokens: 4000,
-    temperature: 0.5,
+    max_tokens: 3000,
+    temperature: 0.35,
   });
 
   // Strip markdown fences and isolate the JSON object if the model adds prose.
