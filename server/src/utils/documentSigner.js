@@ -8,7 +8,10 @@
 // Ed25519 is a *pure* signature scheme (no separate message digest), so it must
 // use the one-shot crypto.sign/verify with algorithm = null — NOT the
 // createSign('SHA256') streaming API or ECDSA's dsaEncoding option.
-const { sign: edSign, verify: edVerify, createHash, randomBytes } = require('crypto');
+const {
+  sign: edSign, verify: edVerify, createHash, randomBytes,
+  createPrivateKey, createPublicKey,
+} = require('crypto');
 
 function privatePem() {
   const k = process.env.DOCUMENT_SIGNING_PRIVATE_KEY;
@@ -19,9 +22,39 @@ function publicPem() {
   return k ? k.replace(/\\n/g, '\n') : null;
 }
 
-/** True when both signing keys are present. */
+// Validate the keys actually PARSE — not just that the env vars exist. A present
+// but malformed PEM (bad quoting/newlines in .env) would otherwise pass the
+// presence check and then throw deep inside signing. Cached and recomputed only
+// if the env values change.
+let _cache = { priv: undefined, pub: undefined, valid: false, error: null };
+function validateKeys() {
+  const priv = privatePem();
+  const pub = publicPem();
+  if (_cache.priv === priv && _cache.pub === pub) return _cache;
+  const c = { priv, pub, valid: false, error: null };
+  if (!priv || !pub) {
+    c.error = 'keys not set';
+  } else {
+    try {
+      createPrivateKey(priv);
+      createPublicKey(pub);
+      c.valid = true;
+    } catch (e) {
+      c.error = e.message;
+    }
+  }
+  _cache = c;
+  return c;
+}
+
+/** True only when both keys are present AND parse as valid Ed25519 PEMs. */
 function isSigningConfigured() {
-  return Boolean(process.env.DOCUMENT_SIGNING_PRIVATE_KEY && process.env.DOCUMENT_SIGNING_PUBLIC_KEY);
+  return validateKeys().valid;
+}
+
+/** Returns a human-readable error if the keys are missing/invalid, else null. */
+function signingKeyError() {
+  return validateKeys().error;
 }
 
 /**
@@ -102,6 +135,7 @@ function getPublicKeyPem() {
 
 module.exports = {
   isSigningConfigured,
+  signingKeyError,
   generateDocumentId,
   hashContent,
   signDocument,

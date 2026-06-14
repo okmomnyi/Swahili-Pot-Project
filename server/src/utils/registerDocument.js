@@ -38,7 +38,16 @@ async function registerDocument({
 
   const documentId = generateDocumentId(documentType);
   const issuedAt = new Date().toISOString();
-  const { contentHash, signature } = signDocument(pdfBytes, documentId, issuedAt);
+  let contentHash;
+  let signature;
+  try {
+    ({ contentHash, signature } = signDocument(pdfBytes, documentId, issuedAt));
+  } catch (err) {
+    // A signing failure must never break document generation — fall back to an
+    // unsigned PDF and surface the reason in the logs.
+    console.error(`[docsign] signing failed (${err.message}) — issuing UNSIGNED document. Check DOCUMENT_SIGNING_* in .env.`);
+    return null;
+  }
 
   await pool.query(
     `INSERT INTO documents (
