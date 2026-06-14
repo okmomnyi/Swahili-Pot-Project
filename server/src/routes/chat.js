@@ -24,15 +24,14 @@ function getProvider() {
       url: process.env.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1/chat/completions',
       key: process.env.NVIDIA_API_KEY,
       extraHeaders: {},
-      // NOTE: moonshotai/kimi-k2-instruct reached end-of-life on NVIDIA NIM
-      // (2026-05-12, HTTP 410) and was removed. A stale NVIDIA_MODEL pointing at
-      // it is filtered out so it can't break the chatbot.
+      // Fast-first ordering for snappy chatbot replies. nvidia/llama-3.1-nemotron-70b
+      // was removed (404s "Not found for account"); Kimi K2 is filtered out
+      // (end-of-life, HTTP 410). A stale NVIDIA_MODEL is still honoured first.
       models: uniq([
         process.env.NVIDIA_MODEL,
-        'meta/llama-3.3-70b-instruct',
-        'nvidia/llama-3.1-nemotron-70b-instruct',
         'meta/llama-3.1-8b-instruct',
         'mistralai/mistral-7b-instruct-v0.3',
+        'meta/llama-3.3-70b-instruct',
         'google/gemma-2-9b-it',
       ]).filter((m) => !/kimi-k2/i.test(m)),
     };
@@ -140,6 +139,8 @@ router.post('/', async (req, res, next) => {
             ...provider.extraHeaders,
           },
           body: JSON.stringify({ model, messages, temperature: 0.2, max_tokens: 600 }),
+          // Fail over to the next model instead of hanging on a slow one.
+          signal: AbortSignal.timeout(25000),
         });
       } catch (fetchErr) {
         console.error(`[chat:${provider.name}] ${model} network error: ${fetchErr.message}`);

@@ -4,19 +4,20 @@ const OpenAI = require('openai');
 
 const uniq = (arr) => arr.filter((v, i, a) => v && a.indexOf(v) === i);
 
-// Models tried in order (first that responds wins). Kimi K2 reached end-of-life
-// on NVIDIA NIM (2026-05-12, HTTP 410) so it is NOT in this list. Override the
-// primary with NVIDIA_NIM_MODEL if needed.
+// Models tried in order (first that responds wins). Only broadly-available NVIDIA
+// NIM models are listed — nvidia/llama-3.1-nemotron-70b-instruct was removed
+// because it 404s ("Not found for account") on this account, wasting a slow
+// round-trip on every fallback. Kimi K2 is excluded (end-of-life, HTTP 410).
+// Override the primary with NVIDIA_NIM_MODEL if needed.
 const NIM_MODELS = uniq([
   process.env.NVIDIA_NIM_MODEL,
-  'meta/llama-3.3-70b-instruct',
-  'nvidia/llama-3.1-nemotron-70b-instruct',
-  'meta/llama-3.1-8b-instruct',
-  'mistralai/mistral-7b-instruct-v0.3',
+  'meta/llama-3.3-70b-instruct', // best quality (primary)
+  'meta/llama-3.1-8b-instruct', // fast, reliable fallback
+  'mistralai/mistral-7b-instruct-v0.3', // fast, reliable last resort
 ]);
 
 // Fast-first ordering for the interactive assistant (snappy first token matters
-// more than depth there). A larger model is kept as fallback.
+// more than depth there). The large model is the final fallback.
 const NIM_FAST_MODELS = uniq([
   process.env.NVIDIA_NIM_FAST_MODEL,
   'meta/llama-3.1-8b-instruct',
@@ -57,6 +58,11 @@ function getNimClient() {
     _client = new OpenAI({
       baseURL: process.env.NVIDIA_NIM_BASE_URL || 'https://integrate.api.nvidia.com/v1',
       apiKey: key,
+      // Don't let the SDK add its own backoff retries — our model-fallback loop
+      // already provides resilience, and SDK retries just compound the delay on a
+      // slow/unavailable model. A per-call timeout (set in aiService) makes a slow
+      // model fail over to the next one quickly instead of hanging.
+      maxRetries: 0,
     });
     _clientKey = key;
   }
