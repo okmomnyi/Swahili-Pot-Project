@@ -22,6 +22,12 @@ async function renderVerificationFooter(doc, { documentId, verificationUrl, issu
   const footerY = opts.y != null ? opts.y : doc.page.height - 64;
   const textWidth = pageWidth - margin * 2 - qrSize - 14;
 
+  // CRITICAL: writing text inside the bottom-margin band makes PDFKit auto-add a
+  // new page (which split the footer across pages). Temporarily drop the bottom
+  // margin to 0 so the footer text stays on the current page. Restored after.
+  const savedBottomMargin = doc.page.margins.bottom;
+  doc.page.margins.bottom = 0;
+
   doc.save();
 
   // Top border line.
@@ -69,6 +75,7 @@ async function renderVerificationFooter(doc, { documentId, verificationUrl, issu
     .text(`Verify at: ${verificationUrl}`, x, y, { width: textWidth, lineBreak: false });
 
   doc.restore();
+  doc.page.margins.bottom = savedBottomMargin;
 }
 
 module.exports = { renderVerificationFooter };
