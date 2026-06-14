@@ -28,6 +28,13 @@ async function start() {
   verifyMailSetup().catch(() => {});
   require('./src/routes/chat').logChatConfig();
 
+  // 3c. Document signing status.
+  if (require('./src/utils/documentSigner').isSigningConfigured()) {
+    console.log('[docsign] Ed25519 document signing ENABLED — generated PDFs are signed and verifiable.');
+  } else {
+    console.warn('[docsign] Document signing DISABLED (set DOCUMENT_SIGNING_PRIVATE_KEY + DOCUMENT_SIGNING_PUBLIC_KEY). PDFs generate without a verification footer.');
+  }
+
   // 4. Start the server.
   app.listen(env.PORT, () => {
     console.log(`SwahiliPot IMS server running on port ${env.PORT}`);

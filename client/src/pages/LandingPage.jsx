@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Award, Users, Star, Rocket, Lightbulb, Building2, Phone, ArrowRight, ArrowDown, CheckCircle2,
   Facebook, Twitter, Instagram, Linkedin, Mail, MapPin, Menu, X, Play, Sparkles,
-  Cpu, Palette, Briefcase, HeartHandshake, Plane, GraduationCap, Quote,
+  Cpu, Palette, Briefcase, HeartHandshake, Plane, GraduationCap, Quote, ShieldCheck,
 } from 'lucide-react';
 import { getSiteContent, mediaUrl } from '../api/site';
 import Logo from '../components/ui/Logo';
@@ -111,10 +111,12 @@ function StatCard({ icon: Icon, value, label, dark }) {
 }
 
 export default function LandingPage() {
+  const navigate = useNavigate();
   const [c, setC] = useState(null);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  const [verifyId, setVerifyId] = useState('');
 
   useEffect(() => {
     getSiteContent()
@@ -442,6 +444,40 @@ export default function LandingPage() {
               {partners.map((p) => <PartnerCard key={p.id} p={p} />)}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Verify a document */}
+      <section id="verify" className="px-4 py-16">
+        <div className="mx-auto max-w-2xl rounded-2xl border border-[#e2e8f0] bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[#eff4ff]">
+            <ShieldCheck className="h-6 w-6 text-[#1e40af]" />
+          </div>
+          <h2 className="font-display text-2xl font-bold text-[#374151]">Verify a Document</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-[#6b7280]">
+            Have you received a document from Swahilipot Hub Foundation? Enter the Document ID from its footer
+            to confirm it is authentic.
+          </p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (verifyId.trim()) navigate(`/verify/${verifyId.trim()}`);
+            }}
+            className="mx-auto mt-5 flex max-w-md flex-col gap-2 sm:flex-row"
+          >
+            <input
+              value={verifyId}
+              onChange={(e) => setVerifyId(e.target.value)}
+              placeholder="e.g. SPH-2026-ATT-A7F3K9"
+              className="flex-1 rounded-lg border border-[#d1d5db] px-3 py-2.5 text-sm focus:border-[#1e40af] focus:outline-none focus:ring-2 focus:ring-[#bfdbfe]"
+            />
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center gap-1 rounded-lg bg-[#1e40af] px-5 py-2.5 text-sm font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-[#1730a0]"
+            >
+              Verify <ArrowRight className="h-4 w-4" />
+            </button>
+          </form>
         </div>
       </section>
 

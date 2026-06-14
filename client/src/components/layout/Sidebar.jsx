@@ -43,6 +43,7 @@ function buildNav(user) {
     items.push({ to: '/site', label: 'Website Content', icon: Globe });
     items.push({ to: '/certificates', label: 'Certificates', icon: Award });
     items.push({ to: '/audit', label: 'Audit Log', icon: ScrollText });
+    items.push({ to: '/admin/documents', label: 'Documents', icon: ShieldCheck });
     items.push({ to: '/admin/ai-usage', label: 'AI Usage', icon: Sparkles });
     items.push({ to: '/platform-settings', label: 'Platform Settings', icon: Settings });
     return items;
@@ -99,6 +100,7 @@ function buildNav(user) {
     items.push({ section: 'Team' });
     items.push({ to: '/instructors', label: 'Instructors', icon: UserCog });
     items.push({ to: '/certificates', label: 'Certificates', icon: Award });
+    items.push({ to: '/documents', label: 'Documents', icon: ShieldCheck });
   }
 
   return items;

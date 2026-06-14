@@ -17,6 +17,23 @@ const {
 const logAIUsage = require('../services/aiUsage');
 const { getSetting } = require('../lib/platformSettings');
 const { drawLetterhead, drawSignatureFooter } = require('../lib/pdfBrand');
+const registerDocument = require('../utils/registerDocument');
+const { renderVerificationFooter } = require('../utils/addVerificationFooter');
+
+// Collect a PDFKit document built by `build(doc)` (may be async) into a Buffer.
+function pdfToBuffer(docOptions, build) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument(docOptions);
+    const chunks = [];
+    doc.on('data', (c) => chunks.push(c));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+    Promise.resolve(build(doc)).then(() => doc.end()).catch(reject);
+  });
+}
+
+// ai_reports.report_type ('progress'|'completion') -> documents.document_type
+const REPORT_DOC_TYPE = { progress: 'progress_report', completion: 'completion_letter' };
 
 const router = express.Router();
 
@@ -665,49 +682,66 @@ router.get(
       const safeName = String(report.attachee_name).replace(/[^a-z0-9]+/gi, '-');
       const dateStr = new Date().toISOString().slice(0, 10);
 
+      // Renders the report; the verification footer is added only in pass 2.
+      const render = (footerData) =>
+        pdfToBuffer({ size: 'A4', margin: 72 }, async (doc) => {
+          drawLetterhead(doc);
+          doc.fillColor(PDF_BRAND).font('Helvetica-Bold').fontSize(14)
+            .text(REPORT_TITLES[report.report_type] || 'ATTACHMENT REPORT', { align: 'center', characterSpacing: 1 });
+          doc.moveDown(0.4);
+          doc.fillColor(PDF_INK).font('Helvetica-Bold').fontSize(12).text(report.attachee_name, { align: 'center' });
+          doc.fillColor(PDF_MUTED).font('Helvetica').fontSize(10).text(report.department_name, { align: 'center' });
+          doc.moveDown(0.8);
+          const y = doc.y;
+          doc.strokeColor('#e2e8f0').lineWidth(1).moveTo(72, y).lineTo(doc.page.width - 72, y).stroke();
+          doc.moveDown(1);
+
+          doc.fillColor(PDF_INK);
+          const blocks = body.split(/\n\s*\n/);
+          for (const block of blocks) {
+            const trimmed = block.trim();
+            if (!trimmed) continue;
+            const headingMatch = /^([A-Z][A-Z \/&]{3,}):?\s*$/.test(trimmed);
+            if (headingMatch) {
+              doc.font('Helvetica-Bold').fontSize(11).text(trimmed.replace(/:$/, ''));
+              doc.moveDown(0.3);
+            } else {
+              doc.font('Helvetica').fontSize(10).text(trimmed, { align: 'justify', lineGap: 3 });
+              doc.moveDown(0.7);
+            }
+          }
+
+          drawSignatureFooter(doc, report.supervisor_name, 'Department Supervisor', { skipBottomRule: !!footerData });
+          if (footerData) await renderVerificationFooter(doc, footerData);
+        });
+
+      // Pass 1 → register/sign → Pass 2 with footer.
+      const pass1 = await render(null);
+      const reg = await registerDocument({
+        pdfBytes: pass1,
+        documentType: REPORT_DOC_TYPE[report.report_type] || 'general',
+        recipientName: report.attachee_name,
+        departmentId: report.department_id,
+        departmentName: report.department_name,
+        issuedById: req.user.id,
+        issuedByName: req.user.name,
+        issuedByRole: req.user.role,
+      });
+      const finalBytes = reg
+        ? await render({
+            documentId: reg.documentId,
+            verificationUrl: reg.verificationUrl,
+            issuedAt: reg.issuedAt,
+            signature: reg.signature,
+          })
+        : pass1;
+
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader(
         'Content-Disposition',
         `attachment; filename="${safeName}-${report.report_type}-report-${dateStr}.pdf"`
       );
-
-      const doc = new PDFDocument({ size: 'A4', margin: 72 });
-      doc.on('error', next);
-      doc.pipe(res);
-
-      // Branded letterhead (real logo, rule below the address block).
-      drawLetterhead(doc);
-
-      // Title + subject
-      doc.fillColor(PDF_BRAND).font('Helvetica-Bold').fontSize(14)
-        .text(REPORT_TITLES[report.report_type] || 'ATTACHMENT REPORT', { align: 'center', characterSpacing: 1 });
-      doc.moveDown(0.4);
-      doc.fillColor(PDF_INK).font('Helvetica-Bold').fontSize(12).text(report.attachee_name, { align: 'center' });
-      doc.fillColor(PDF_MUTED).font('Helvetica').fontSize(10).text(report.department_name, { align: 'center' });
-      doc.moveDown(0.8);
-      const y = doc.y;
-      doc.strokeColor('#e2e8f0').lineWidth(1).moveTo(72, y).lineTo(doc.page.width - 72, y).stroke();
-      doc.moveDown(1);
-
-      // Body — render UPPERCASE-heading lines in bold, paragraphs in regular.
-      doc.fillColor(PDF_INK);
-      const blocks = body.split(/\n\s*\n/);
-      for (const block of blocks) {
-        const trimmed = block.trim();
-        if (!trimmed) continue;
-        const headingMatch = /^([A-Z][A-Z \/&]{3,}):?\s*$/.test(trimmed);
-        if (headingMatch) {
-          doc.font('Helvetica-Bold').fontSize(11).text(trimmed.replace(/:$/, ''));
-          doc.moveDown(0.3);
-        } else {
-          doc.font('Helvetica').fontSize(10).text(trimmed, { align: 'justify', lineGap: 3 });
-          doc.moveDown(0.7);
-        }
-      }
-
-      drawSignatureFooter(doc, report.supervisor_name, 'Department Supervisor');
-
-      doc.end();
+      return res.send(finalBytes);
     } catch (err) {
       return next(err);
     }

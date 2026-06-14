@@ -119,6 +119,12 @@ function AdminDashboard() {
           title="Platform Settings"
           description="Maintenance mode and system limits."
         />
+        <QuickLink
+          to="/admin/documents"
+          icon={ShieldCheck}
+          title="Documents"
+          description="Signed-document registry and revocation."
+        />
       </div>
     </div>
   );

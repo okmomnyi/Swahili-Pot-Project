@@ -19,6 +19,8 @@ const adminRoutes = require('./routes/admin');
 const taskRoutes = require('./routes/tasks');
 const attacheeRoutes = require('./routes/attachee');
 const attacheesRoutes = require('./routes/attachees');
+const verificationRoutes = require('./routes/verification');
+const documentsRoutes = require('./routes/documents');
 const inquiryRoutes = require('./routes/inquiries');
 const siteRoutes = require('./routes/site');
 const chatRoutes = require('./routes/chat');
@@ -67,6 +69,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/attachee', attacheeRoutes);
 app.use('/api/attachees', attacheesRoutes);
+app.use('/api/verify', verificationRoutes); // public, no auth
+app.use('/api/documents', documentsRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/site', siteRoutes);
 app.use('/api/chat', chatRoutes);

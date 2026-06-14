@@ -40,6 +40,9 @@ import AttacheeProfilePage from './pages/AttacheeProfilePage';
 import AIReportsPage from './pages/AIReportsPage';
 import AssistantPage from './pages/ai/AssistantPage';
 import AIUsagePage from './pages/admin/AIUsagePage';
+import VerifyPage from './pages/verify/VerifyPage';
+import DocumentsPage from './pages/documents/DocumentsPage';
+import AdminDocumentsPage from './pages/admin/AdminDocumentsPage';
 import TermsPage from './pages/legal/TermsPage';
 import PrivacyPage from './pages/legal/PrivacyPage';
 
@@ -57,6 +60,8 @@ export default function App() {
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/maintenance" element={<MaintenancePage />} />
+      {/* Public document verification — no login required */}
+      <Route path="/verify/:document_id" element={<VerifyPage />} />
       {/* Common aliases → canonical paths */}
       <Route path="/terms-of-service" element={<Navigate to="/terms" replace />} />
       <Route path="/privacy-policy" element={<Navigate to="/privacy" replace />} />
@@ -277,6 +282,22 @@ export default function App() {
           element={
             <RoleRoute roles={['admin']}>
               <AIUsagePage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/admin/documents"
+          element={
+            <RoleRoute roles={['admin']}>
+              <AdminDocumentsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/documents"
+          element={
+            <RoleRoute roles={['supervisor']}>
+              <DocumentsPage />
             </RoleRoute>
           }
         />

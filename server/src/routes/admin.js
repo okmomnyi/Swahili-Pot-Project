@@ -576,4 +576,92 @@ router.put('/settings', async (req, res, next) => {
   }
 });
 
+// ----------------------------------------------------------------------------
+// Signed-document registry (all departments)
+// ----------------------------------------------------------------------------
+
+const DOC_TYPES = [
+  'attachment_letter', 'completion_certificate', 'progress_report',
+  'completion_letter', 'trainee_certificate', 'general',
+];
+
+// GET /api/admin/documents/stats — registry overview (declared before :id).
+router.get('/documents/stats', async (req, res, next) => {
+  try {
+    const [totals, byType, byDept] = await Promise.all([
+      pool.query(
+        `SELECT COUNT(*)::int AS total_documents,
+                COUNT(*) FILTER (WHERE is_revoked)::int AS revoked_count,
+                COUNT(*) FILTER (WHERE date_trunc('month', issued_at) = date_trunc('month', NOW()))::int AS this_month
+           FROM documents`
+      ),
+      pool.query('SELECT document_type, COUNT(*)::int AS count FROM documents GROUP BY document_type'),
+      pool.query('SELECT department_name, COUNT(*)::int AS count FROM documents GROUP BY department_name ORDER BY count DESC'),
+    ]);
+    const by_type = {};
+    for (const t of DOC_TYPES) by_type[t] = 0;
+    for (const r of byType.rows) by_type[r.document_type] = r.count;
+    return res.json({
+      total_documents: totals.rows[0].total_documents,
+      revoked_count: totals.rows[0].revoked_count,
+      this_month: totals.rows[0].this_month,
+      by_type,
+      by_department: byDept.rows,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// GET /api/admin/documents — paginated list across all departments.
+router.get('/documents', async (req, res, next) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+    const offset = (page - 1) * limit;
+
+    const conditions = [];
+    const params = [];
+    if (req.query.department_id) { params.push(parseInt(req.query.department_id, 10)); conditions.push(`department_id = $${params.length}`); }
+    if (req.query.document_type) { params.push(req.query.document_type); conditions.push(`document_type = $${params.length}`); }
+    if (req.query.is_revoked === 'true') conditions.push('is_revoked = true');
+    if (req.query.is_revoked === 'false') conditions.push('is_revoked = false');
+    if (req.query.from) { params.push(req.query.from); conditions.push(`issued_at >= $${params.length}`); }
+    if (req.query.to) { params.push(req.query.to); conditions.push(`issued_at <= $${params.length}`); }
+    if (req.query.search) {
+      params.push(`%${req.query.search.trim().toLowerCase()}%`);
+      conditions.push(`LOWER(recipient_name) LIKE $${params.length}`);
+    }
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const totalRes = await pool.query(`SELECT COUNT(*)::int AS n FROM documents ${where}`, params);
+    const total = totalRes.rows[0].n;
+    const { rows } = await pool.query(
+      `SELECT document_id, document_type, recipient_name, department_id, department_name,
+              issued_by_name, issued_by_role, issued_at, is_revoked, revoked_at, revocation_reason
+         FROM documents ${where}
+        ORDER BY issued_at DESC
+        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, limit, offset]
+    );
+    return res.json({ documents: rows, total, page, pages: Math.ceil(total / limit) || 1 });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// GET /api/admin/documents/:document_id — full record.
+router.get('/documents/:document_id', async (req, res, next) => {
+  try {
+    const { rows: [doc] } = await pool.query(
+      'SELECT * FROM documents WHERE document_id = $1',
+      [req.params.document_id]
+    );
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+    return res.json({ document: doc });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 module.exports = router;

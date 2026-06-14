@@ -46,6 +46,13 @@ const envSchema = z.object({
   // Verified sender. Falls back to SMTP_FROM if not set.
   MAIL_FROM_EMAIL: z.string().optional(),
   MAIL_FROM_NAME: z.string().optional(),
+  // Document signing (Ed25519). Optional so the server still boots without it —
+  // document signing/verification stays disabled until both keys are set.
+  DOCUMENT_SIGNING_PRIVATE_KEY: z.string().optional(),
+  DOCUMENT_SIGNING_PUBLIC_KEY: z.string().optional(),
+  // Public-facing base URL embedded in document QR codes. Falls back to
+  // CLIENT_URL + '/verify' when unset.
+  VERIFICATION_BASE_URL: z.string().optional(),
 }).refine(
   (env) =>
     env.STORAGE_DRIVER !== 's3' ||
