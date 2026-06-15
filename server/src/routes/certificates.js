@@ -113,10 +113,10 @@ function drawCertificate(doc, { title, recipient, bodyLines, dept, leftSig, righ
   }
 
   // Seal.
-  drawSeal(doc, cx, reserveFooter ? H - 178 : H - 150, 26);
+  drawSeal(doc, cx, reserveFooter ? H - 200 : H - 150, 26);
 
   // Signatures (lifted up when a verification footer occupies the bottom band).
-  const sigY = reserveFooter ? H - 128 : H - 96;
+  const sigY = reserveFooter ? H - 138 : H - 96;
   const colW = 200;
   const leftX = 90;
   const rightX = W - 90 - colW;
@@ -222,7 +222,7 @@ router.post('/generate', verifyToken, requireRole('supervisor'), async (req, res
             dateStr: longDate(new Date()),
             reserveFooter: !!footerData,
           });
-          if (footerData) await renderVerificationFooter(doc, footerData, { y: H - 78, qrSize: 40 });
+          if (footerData) await renderVerificationFooter(doc, footerData, { y: H - 95, qrSize: 38 });
         } else {
           drawLetterhead(doc);
           doc.moveDown(1);
@@ -307,7 +307,7 @@ router.post('/trainee', verifyToken, requireRole('instructor', 'supervisor'), as
           dateStr: longDate(new Date()),
           reserveFooter: !!footerData,
         });
-        if (footerData) await renderVerificationFooter(doc, footerData, { y: H - 78, qrSize: 40 });
+        if (footerData) await renderVerificationFooter(doc, footerData, { y: H - 95, qrSize: 38 });
       });
 
     const pass1 = await render(null);

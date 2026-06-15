@@ -73,7 +73,9 @@ function drawLetterhead(doc) {
  */
 function drawSignatureFooter(doc, name, title, opts = {}) {
   const left = doc.page.margins.left;
-  const bottom = doc.page.height - 140;
+  // Lift the signature block higher when a verification footer will sit below it
+  // (skipBottomRule is passed exactly in that case), so the two don't collide.
+  const bottom = doc.page.height - (opts.skipBottomRule ? 200 : 140);
   if (doc.y < bottom) doc.y = bottom;
   doc.strokeColor('#9ca3af').lineWidth(1).moveTo(left, doc.y).lineTo(left + 180, doc.y).stroke();
   doc.moveDown(0.4);

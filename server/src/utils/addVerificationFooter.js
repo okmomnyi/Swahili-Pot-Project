@@ -18,8 +18,11 @@ const MUTED = '#6b7280';
 async function renderVerificationFooter(doc, { documentId, verificationUrl, issuedAt, signature }, opts = {}) {
   const pageWidth = doc.page.width;
   const margin = doc.page.margins.left;
-  const qrSize = opts.qrSize || 46;
-  const footerY = opts.y != null ? opts.y : doc.page.height - 64;
+  const qrSize = opts.qrSize || 44;
+  // Keep the whole footer well inside the printable area — printers clip a
+  // ~0.4-0.5in strip at the bottom edge, so the footer's lowest element (QR /
+  // last text line) must stay ~50pt above the page bottom or it won't print.
+  const footerY = opts.y != null ? opts.y : doc.page.height - 100;
   const textWidth = pageWidth - margin * 2 - qrSize - 14;
 
   // CRITICAL: writing text inside the bottom-margin band makes PDFKit auto-add a
