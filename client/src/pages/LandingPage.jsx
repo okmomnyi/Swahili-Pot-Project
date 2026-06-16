@@ -110,6 +110,39 @@ function StatCard({ icon: Icon, value, label, dark }) {
   );
 }
 
+// Turn a pasted video URL into something embeddable: a YouTube/Vimeo iframe, or
+// a direct video file (.mp4/.webm/.ogg). Anything else is tried as an iframe.
+function toEmbed(url) {
+  const u = (url || '').trim();
+  if (!u) return null;
+  let m = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+  if (m) return { type: 'iframe', src: `https://www.youtube.com/embed/${m[1]}` };
+  m = u.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (m) return { type: 'iframe', src: `https://player.vimeo.com/video/${m[1]}` };
+  if (/\.(mp4|webm|ogg)(\?.*)?$/i.test(u)) return { type: 'file', src: u };
+  return { type: 'iframe', src: u };
+}
+
+function VideoEmbed({ url }) {
+  const e = toEmbed(url);
+  if (!e) return null;
+  return (
+    <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: '16 / 9' }}>
+      {e.type === 'file' ? (
+        <video src={e.src} controls className="absolute inset-0 h-full w-full object-contain" />
+      ) : (
+        <iframe
+          src={e.src}
+          title="Video"
+          className="absolute inset-0 h-full w-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
+      )}
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const navigate = useNavigate();
   const [c, setC] = useState(null);
@@ -218,6 +251,12 @@ export default function LandingPage() {
             </a>
           </div>
 
+          {hero.videoUrl && (
+            <div className="mx-auto mt-12 max-w-2xl overflow-hidden rounded-2xl border border-white/20 shadow-2xl ring-1 ring-white/10">
+              <VideoEmbed url={hero.videoUrl} />
+            </div>
+          )}
+
           <div className="mx-auto mt-14 grid max-w-xl grid-cols-3 gap-6 border-t border-white/15 pt-8">
             {[
               [metrics.youthImpacted, 'Youth Impacted'],
@@ -301,16 +340,22 @@ export default function LandingPage() {
           <Reveal>
             <div className="relative">
               <div className="overflow-hidden rounded-3xl shadow-xl">
-                {aboutImg ? (
-                  <img src={aboutImg} alt="Swahilipot youth" className="h-72 w-full object-cover" />
+                {about.videoUrl ? (
+                  <VideoEmbed url={about.videoUrl} />
                 ) : (
-                  <div className="flex h-72 w-full items-center justify-center bg-gradient-to-br from-[#1e40af] to-[#3b63d4]">
-                    <Users size={64} className="text-white/80" />
-                  </div>
+                  <>
+                    {aboutImg ? (
+                      <img src={aboutImg} alt="Swahilipot youth" className="h-72 w-full object-cover" />
+                    ) : (
+                      <div className="flex h-72 w-full items-center justify-center bg-gradient-to-br from-[#1e40af] to-[#3b63d4]">
+                        <Users size={64} className="text-white/80" />
+                      </div>
+                    )}
+                    <button className="pulse-ring absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#1e40af] shadow-lg transition-transform hover:scale-105">
+                      <Play size={22} className="ml-1" fill="currentColor" />
+                    </button>
+                  </>
                 )}
-                <button className="pulse-ring absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#1e40af] shadow-lg transition-transform hover:scale-105">
-                  <Play size={22} className="ml-1" fill="currentColor" />
-                </button>
               </div>
               {/* floating stat badge */}
               <div className="absolute -bottom-6 -right-4 rounded-2xl bg-white px-5 py-3 shadow-lg ring-1 ring-[#e2e8f0]">

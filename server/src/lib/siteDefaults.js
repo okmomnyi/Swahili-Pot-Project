@@ -14,6 +14,10 @@ const SITE_DEFAULTS = {
     primaryHref: '#programs',
     secondaryLabel: 'Our Story',
     secondaryHref: '#about',
+    // Optional video for the hero. A YouTube/Vimeo link or a direct .mp4/.webm
+    // URL. When set, the landing page shows the video; otherwise it falls back
+    // to the hero image. Managed from the admin Website Content page.
+    videoUrl: '',
   },
 
   // The numbers the admin manages. Reused across the page.
@@ -64,6 +68,9 @@ const SITE_DEFAULTS = {
     ],
     phone: '+254 11 4602690',
     ctaLabel: 'More About Us',
+    // Optional video for the About section (YouTube/Vimeo link or direct .mp4/
+    // .webm URL). When set it appears alongside the About content.
+    videoUrl: '',
   },
 
   programs: [
