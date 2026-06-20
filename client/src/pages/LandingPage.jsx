@@ -9,6 +9,7 @@ import { getSiteContent, mediaUrl } from '../api/site';
 import Logo from '../components/ui/Logo';
 import Spinner from '../components/ui/Spinner';
 import ChatWidget from '../components/ui/ChatWidget';
+import { LesoRibbon, LesoMedallion } from '../components/ui/LesoPattern';
 import { SITE_FALLBACK } from '../lib/siteFallback';
 
 const PROGRAM_GRADIENTS = [
@@ -202,6 +203,9 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white text-[#374151]">
+      {/* Kanga (leso) edge — a Swahili-coast welcome ribbon */}
+      <LesoRibbon palette="warm" height={10} />
+
       {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-[#e2e8f0] bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
@@ -252,6 +256,9 @@ export default function LandingPage() {
         <div className="animate-blob animate-float-slow absolute -right-10 bottom-10 -z-10 h-80 w-80 bg-[#f8572b]/20 blur-3xl" />
         {/* Rolling waves at the shoreline */}
         <HeroWaves />
+        {/* Leso medallions — Swahili cloth motifs drifting in the corners */}
+        <LesoMedallion palette="cool" size={170} className="animate-float-slow absolute -left-12 top-24 z-0 opacity-40" />
+        <LesoMedallion palette="warm" size={130} className="animate-float absolute right-6 top-10 z-0 opacity-30" />
 
         <div className="relative z-10 mx-auto max-w-3xl text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-sea-300/30 bg-sea-400/15 px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-sea-100 backdrop-blur">
@@ -360,8 +367,13 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Kanga border divider */}
+      <LesoRibbon palette="warm" height={20} className="opacity-90" />
+
       {/* About */}
-      <section id="about" className="bg-[#f8faff] px-4 py-20">
+      <section id="about" className="relative isolate overflow-hidden bg-[#f8faff] px-4 py-20">
+        {/* Leso watermark */}
+        <LesoMedallion palette="warm" size={360} className="absolute -right-24 -top-16 -z-10 opacity-[0.07]" />
         <div className="mx-auto grid max-w-5xl items-center gap-12 md:grid-cols-2">
           <Reveal>
             <div className="relative">
@@ -434,7 +446,9 @@ export default function LandingPage() {
       </section>
 
       {/* Programs */}
-      <section id="programs" className="px-4 py-20">
+      <section id="programs" className="relative isolate overflow-hidden px-4 py-20">
+        {/* Leso watermark */}
+        <LesoMedallion palette="sand" size={300} className="absolute -left-20 bottom-0 -z-10 opacity-[0.08]" />
         <div className="mx-auto max-w-5xl">
           <Reveal>
             <h2 className="text-center font-display text-3xl font-bold text-[#374151] sm:text-4xl">Our Programs</h2>
@@ -468,6 +482,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Kanga border divider into the dark band */}
+      <LesoRibbon palette="cool" height={20} />
 
       {/* Impact — dark band */}
       <section id="impact" className="relative isolate overflow-hidden px-4 py-20 text-white">
@@ -577,10 +594,11 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Kanga ribbon closing the page */}
+      <LesoRibbon palette="warm" height={16} />
+
       {/* Footer */}
       <footer className="relative bg-[#0a1654] px-4 py-14 text-white/80">
-        {/* Brass waterline + faint kanga weave */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-sun-brass" />
         <div className="swahili-weave pointer-events-none absolute inset-0 opacity-15" />
         <div className="relative mx-auto grid max-w-6xl gap-8 sm:grid-cols-2 md:grid-cols-4">
           <div>
