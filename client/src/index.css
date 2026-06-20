@@ -1,30 +1,33 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Inter:wght@400;500&display=swap');
 
+/* stylelint-disable at-rule-no-unknown -- allow Tailwind directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* stylelint-enable at-rule-no-unknown */
 
 /* Semantic color tokens. Light values on :root; .dark (applied to the
    authenticated layout wrapper) overrides them. Public pages live outside
    .dark and therefore always render in light mode. */
 :root {
-  --color-canvas: #f8faff;
+  --color-canvas: #f3f8fb;
   --color-card: #ffffff;
-  --color-line: #e2e8f0;
-  --color-ink: #374151;
-  --color-subtle: #6b7280;
-  --color-hover: #f1f5f9;
-  --color-accent-soft: #eff4ff;
+  --color-line: #dbe7ef;
+  --color-ink: #1f3247;
+  --color-subtle: #5b7385;
+  --color-hover: #ecf4f9;
+  --color-accent-soft: #e6f3f7;
 }
 
 .dark {
-  --color-canvas: #0b1120;
-  --color-card: #131c31;
-  --color-line: #28324a;
-  --color-ink: #e6eaf2;
-  --color-subtle: #94a3b8;
-  --color-hover: #1c2740;
-  --color-accent-soft: rgba(59, 99, 212, 0.16);
+  /* Midnight Indian Ocean — deep teal-navy instead of flat slate. */
+  --color-canvas: #06121f;
+  --color-card: #0e2233;
+  --color-line: #1d3a4d;
+  --color-ink: #e3eef3;
+  --color-subtle: #8fb0bf;
+  --color-hover: #15314466;
+  --color-accent-soft: rgba(6, 182, 212, 0.16);
 }
 
 @layer base {
@@ -35,9 +38,9 @@
   }
 
   body {
-    background-color: #f8faff;
+    background-color: #f3f8fb;
     font-family: 'Inter', sans-serif;
-    color: #374151;
+    color: #1f3247;
   }
 
   h1,
@@ -109,11 +112,94 @@
   background-size: 22px 22px;
 }
 
+/* ====================================================================
+   Ocean & Swahili-coast motion — used by the login scene and chrome.
+   ==================================================================== */
+
+/* Layered sea waves drifting horizontally (SVG paths repeated 2x wide). */
+@keyframes sph-wave {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.wave-1 { animation: sph-wave 14s linear infinite; }
+.wave-2 { animation: sph-wave 9s linear infinite reverse; }
+.wave-3 { animation: sph-wave 20s linear infinite; }
+
+/* Slow rocking — a dhow on the swell. */
+@keyframes sph-sway {
+  0%, 100% { transform: translateY(0) rotate(-1.2deg); }
+  50% { transform: translateY(-8px) rotate(1.2deg); }
+}
+.animate-sway { animation: sph-sway 7s ease-in-out infinite; transform-origin: bottom center; }
+
+/* Bubbles / sea sparkle rising from the deep. */
+@keyframes sph-rise {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  15% { opacity: 0.8; }
+  100% { transform: translateY(-120px) scale(1); opacity: 0; }
+}
+.animate-rise { animation: sph-rise linear infinite; }
+
+/* Living gradient — the sky/sea hue breathing. */
+@keyframes sph-hue {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.animate-hue {
+  background-size: 200% 200%;
+  animation: sph-hue 16s ease infinite;
+}
+
+/* Brass shimmer sweeping across a surface. */
+@keyframes sph-shimmer {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(220%); }
+}
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: sph-shimmer 4.5s ease-in-out infinite;
+}
+
+/* Soft sun / lantern glow pulse. */
+@keyframes sph-glow {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.06); }
+}
+.animate-glow { animation: sph-glow 6s ease-in-out infinite; }
+
+/* Gentle entrance for the login card. */
+@keyframes sph-rise-in {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-rise-in { animation: sph-rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Kanga / Swahili woven texture — faint repeating geometric weave. */
+.swahili-weave {
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 12px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 12px);
+  background-size: 24px 24px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-float,
   .animate-float-slow,
   .animate-blob,
   .animate-marquee,
-  .pulse-ring::before { animation: none; }
+  .pulse-ring::before,
+  .wave-1,
+  .wave-2,
+  .wave-3,
+  .animate-sway,
+  .animate-rise,
+  .animate-hue,
+  .shimmer::after,
+  .animate-glow,
+  .animate-rise-in { animation: none; }
   .reveal { opacity: 1; transform: none; }
 }

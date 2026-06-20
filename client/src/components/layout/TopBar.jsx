@@ -90,7 +90,7 @@ export default function TopBar() {
             onClick={() => setMenuOpen((o) => !o)}
             className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 hover:bg-hover"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-lagoon text-sm font-semibold text-white shadow-sm ring-2 ring-sea-200/40">
               {user.name.charAt(0).toUpperCase()}
             </span>
             <ChevronDown size={16} className="text-subtle" />

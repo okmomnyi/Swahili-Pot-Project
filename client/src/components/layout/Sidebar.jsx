@@ -112,8 +112,17 @@ export default function Sidebar() {
 
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-card md:flex">
-      <div className="border-b border-line px-5 py-4">
-        <Logo size={18} />
+      <div className="relative overflow-hidden border-b border-line bg-ocean-deep px-5 py-4">
+        <div className="swahili-weave pointer-events-none absolute inset-0 opacity-40" />
+        {/* Brass waterline accent under the header. */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-sun-brass" />
+        <Link
+          to="/"
+          aria-label="SwahiliPot Hub Foundation — home"
+          className="relative inline-flex rounded-lg bg-white/95 px-3 py-1.5 shadow-sm outline-none transition-transform duration-200 hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-sea-300"
+        >
+          <Logo size={18} />
+        </Link>
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
@@ -131,15 +140,24 @@ export default function Sidebar() {
               to={item.to}
               end={item.to === '/dashboard'}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                `group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all ${
                   isActive
-                    ? 'bg-accentSoft font-medium text-brand-600'
-                    : 'text-ink hover:bg-hover'
+                    ? 'bg-accentSoft font-semibold text-brand-600 shadow-sm'
+                    : 'text-ink hover:translate-x-0.5 hover:bg-hover'
                 }`
               }
             >
-              <item.icon size={18} />
-              {item.label}
+              {({ isActive }) => (
+                <>
+                  <span
+                    className={`absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b from-sea-400 to-brand-600 transition-opacity ${
+                      isActive ? 'opacity-100' : 'opacity-0'
+                    }`}
+                  />
+                  <item.icon size={18} className={isActive ? 'text-sea-600' : ''} />
+                  {item.label}
+                </>
+              )}
             </NavLink>
           )
         )}
@@ -148,7 +166,7 @@ export default function Sidebar() {
       <div className="border-t border-line px-4 py-4">
         <div className="mb-2">
           <p className="truncate text-sm font-semibold text-ink">{user.name}</p>
-          <span className="mt-1 inline-block rounded-full bg-brand-600 px-2.5 py-0.5 text-xs font-medium text-white">
+          <span className="mt-1 inline-block rounded-full bg-lagoon px-2.5 py-0.5 text-xs font-medium text-white shadow-sm">
             {ROLE_LABEL[user.role]}
           </span>
         </div>
