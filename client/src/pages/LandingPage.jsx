@@ -100,7 +100,7 @@ function StatCard({ icon: Icon, value, label, dark }) {
       }`}
     >
       <div className={`mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 ${dark ? 'bg-white/10' : 'bg-[#eff4ff]'}`}>
-        <Icon size={22} className={dark ? 'text-[#7da2ff]' : 'text-[#1e40af]'} />
+        <Icon size={22} className={dark ? 'text-sea-300' : 'text-[#1e40af]'} />
       </div>
       <p className={`font-display text-3xl font-bold ${dark ? 'text-white' : 'text-[#1e40af]'}`}>
         <CountUp end={Number(value) || 0} />
@@ -143,6 +143,28 @@ function VideoEmbed({ url }) {
   );
 }
 
+// A single wave period is 1440 wide; the path repeats twice (2880) so an
+// animated translateX of -50% loops seamlessly. Shared by the hero waves.
+const WAVE_PATH =
+  'M0,40 C240,80 480,0 720,40 C960,80 1200,0 1440,40 C1680,80 1920,0 2160,40 C2400,80 2640,0 2880,40 L2880,120 L0,120 Z';
+
+// Layered Indian-Ocean waves rolling along the foot of the hero.
+function HeroWaves() {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-28 overflow-hidden">
+      <svg className="wave-3 absolute bottom-0 left-0 h-24 w-[200%]" viewBox="0 0 2880 120" preserveAspectRatio="none">
+        <path d={WAVE_PATH} fill="#0e7490" opacity="0.35" />
+      </svg>
+      <svg className="wave-2 absolute bottom-0 left-0 h-20 w-[200%]" viewBox="0 0 2880 120" preserveAspectRatio="none">
+        <path d={WAVE_PATH} fill="#0891b2" opacity="0.4" />
+      </svg>
+      <svg className="wave-1 absolute bottom-0 left-0 h-14 w-[200%]" viewBox="0 0 2880 120" preserveAspectRatio="none">
+        <path d={WAVE_PATH} fill="#22d3ee" opacity="0.5" />
+      </svg>
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const navigate = useNavigate();
   const [c, setC] = useState(null);
@@ -160,7 +182,7 @@ export default function LandingPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f8faff]">
+      <div className="flex min-h-screen items-center justify-center bg-[#f3f8fb]">
         <Spinner />
       </div>
     );
@@ -183,14 +205,14 @@ export default function LandingPage() {
       {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-[#e2e8f0] bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Logo size={18} />
+          <Logo size={18} to="/" />
           <nav className="hidden items-center gap-7 md:flex">
             {navLinks.map((l) => (
               <a key={l.href} href={l.href} className="text-sm font-medium text-[#374151] transition-colors hover:text-[#1e40af]">
                 {l.label}
               </a>
             ))}
-            <Link to="/login" className="rounded-lg bg-[#1e40af] px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#1730a0] hover:shadow-md">
+            <Link to="/login" className="rounded-lg bg-lagoon px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
               Staff Login
             </Link>
           </nav>
@@ -206,7 +228,7 @@ export default function LandingPage() {
                   {l.label}
                 </a>
               ))}
-              <Link to="/login" className="rounded-lg bg-[#1e40af] px-4 py-2 text-center text-sm font-medium text-white">
+              <Link to="/login" className="rounded-lg bg-lagoon px-4 py-2 text-center text-sm font-medium text-white">
                 Staff Login
               </Link>
             </div>
@@ -215,9 +237,9 @@ export default function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="relative isolate overflow-hidden px-4 pb-24 pt-20 text-white">
-        {/* Background */}
-        <div className="absolute inset-0 -z-10" style={{ background: 'linear-gradient(135deg, #0a1654 0%, #1730a0 55%, #1e40af 100%)' }} />
+      <section className="relative isolate overflow-hidden px-4 pb-28 pt-20 text-white">
+        {/* Background — deep ocean sliding into lagoon teal */}
+        <div className="absolute inset-0 -z-10" style={{ background: 'linear-gradient(135deg, #0a1654 0%, #11357a 42%, #0e7490 100%)' }} />
         {heroImg && (
           <div
             className="absolute inset-0 -z-10 bg-cover bg-center opacity-30 mix-blend-luminosity"
@@ -225,17 +247,19 @@ export default function LandingPage() {
           />
         )}
         <div className="hero-grid absolute inset-0 -z-10 opacity-60" />
-        {/* Floating blobs */}
-        <div className="animate-blob animate-float absolute -left-16 top-10 -z-10 h-72 w-72 bg-[#3b63d4]/30 blur-3xl" />
-        <div className="animate-blob animate-float-slow absolute -right-10 bottom-0 -z-10 h-80 w-80 bg-[#7da2ff]/20 blur-3xl" />
+        {/* Floating blobs — teal swell + coral sunset glow */}
+        <div className="animate-blob animate-float absolute -left-16 top-10 -z-10 h-72 w-72 bg-[#22d3ee]/25 blur-3xl" />
+        <div className="animate-blob animate-float-slow absolute -right-10 bottom-10 -z-10 h-80 w-80 bg-[#f8572b]/20 blur-3xl" />
+        {/* Rolling waves at the shoreline */}
+        <HeroWaves />
 
-        <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-white/90 backdrop-blur">
+        <div className="relative z-10 mx-auto max-w-3xl text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-sea-300/30 bg-sea-400/15 px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-sea-100 backdrop-blur">
             <Sparkles size={13} /> {hero.badge}
           </span>
           <h1 className="mt-6 font-display text-4xl font-bold leading-[1.1] sm:text-6xl">
             {hero.titleLead}{' '}
-            <span className="bg-gradient-to-r from-[#7da2ff] via-[#a5c0ff] to-[#7da2ff] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#67e8f9] via-[#a5c0ff] to-[#e9c766] bg-clip-text text-transparent">
               {hero.titleHighlight}
             </span>{' '}
             {hero.titleTrail}
@@ -273,7 +297,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <a href="#decade" className="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/60 hover:text-white" aria-label="Scroll down">
+        <a href="#decade" className="absolute bottom-5 left-1/2 z-10 -translate-x-1/2 text-white/70 hover:text-white" aria-label="Scroll down">
           <ArrowDown size={22} className="animate-float" />
         </a>
       </section>
@@ -301,7 +325,9 @@ export default function LandingPage() {
           </Reveal>
 
           <Reveal className="mt-12" delay={150}>
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1730a0] to-[#1e40af] px-6 py-10 text-center text-white shadow-xl">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1730a0] via-[#1e40af] to-[#0e7490] px-6 py-10 text-center text-white shadow-xl">
+              <div className="swahili-weave pointer-events-none absolute inset-0 opacity-30" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-sun-brass" />
               <Quote size={120} className="absolute -left-4 -top-4 text-white/10" />
               <p className="relative font-display text-xl font-semibold sm:text-2xl">{decade.quote}</p>
               <p className="relative mx-auto mt-3 max-w-2xl text-sm text-white/80">{decade.quoteBody}</p>
@@ -445,8 +471,9 @@ export default function LandingPage() {
 
       {/* Impact — dark band */}
       <section id="impact" className="relative isolate overflow-hidden px-4 py-20 text-white">
-        <div className="absolute inset-0 -z-10" style={{ background: 'linear-gradient(135deg, #0a1654 0%, #1e40af 100%)' }} />
-        <div className="animate-blob animate-float-slow absolute -right-16 top-0 -z-10 h-72 w-72 bg-[#3b63d4]/30 blur-3xl" />
+        <div className="absolute inset-0 -z-10" style={{ background: 'linear-gradient(135deg, #0a1654 0%, #134e6b 60%, #0e7490 100%)' }} />
+        <div className="swahili-weave absolute inset-0 -z-10 opacity-25" />
+        <div className="animate-blob animate-float-slow absolute -right-16 top-0 -z-10 h-72 w-72 bg-[#22d3ee]/25 blur-3xl" />
         <div className="mx-auto max-w-5xl text-center">
           <Reveal>
             <h2 className="font-display text-3xl font-bold sm:text-4xl">Our Impact</h2>
@@ -528,8 +555,9 @@ export default function LandingPage() {
 
       {/* Newsletter */}
       <section className="relative isolate overflow-hidden px-4 py-14 text-white">
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#1730a0] to-[#1e40af]" />
-        <div className="animate-blob absolute -left-10 -top-10 -z-10 h-48 w-48 bg-white/10 blur-2xl" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#1730a0] via-[#155e75] to-[#0e7490]" />
+        <div className="swahili-weave absolute inset-0 -z-10 opacity-20" />
+        <div className="animate-blob absolute -left-10 -top-10 -z-10 h-48 w-48 bg-[#22d3ee]/20 blur-2xl" />
         <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-5 md:flex-row">
           <div>
             <h3 className="font-display text-2xl font-bold">{newsletter.heading}</h3>
@@ -550,10 +578,13 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#0a1654] px-4 py-14 text-white/80">
-        <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-2 md:grid-cols-4">
+      <footer className="relative bg-[#0a1654] px-4 py-14 text-white/80">
+        {/* Brass waterline + faint kanga weave */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-sun-brass" />
+        <div className="swahili-weave pointer-events-none absolute inset-0 opacity-15" />
+        <div className="relative mx-auto grid max-w-6xl gap-8 sm:grid-cols-2 md:grid-cols-4">
           <div>
-            <div className="w-fit rounded-lg bg-white px-2.5 py-2"><Logo size={16} /></div>
+            <Link to="/" aria-label="SwahiliPot Hub Foundation — home" className="inline-block w-fit rounded-lg bg-white px-2.5 py-2 transition-transform hover:scale-[1.03]"><Logo size={16} /></Link>
             <p className="mt-4 text-sm text-white/70">
               Empowering youth through technology, arts, and entrepreneurship across East Africa.
             </p>

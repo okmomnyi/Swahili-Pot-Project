@@ -23,7 +23,7 @@ const RESET_TTL_MINUTES = 60;
 const COOKIE_OPTS = {
   httpOnly: true,
   sameSite: 'lax',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  maxAge: 12 * 60 * 60 * 1000, // 12 hours — must match the JWT expiry below
 };
 
 // POST /api/auth/login
@@ -61,7 +61,7 @@ router.post('/login', async (req, res, next) => {
         department_id: user.department_id,
       },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '12h' }
     );
 
     res.cookie('token', token, COOKIE_OPTS);
