@@ -9,7 +9,7 @@ import { getSiteContent, mediaUrl } from '../api/site';
 import Logo from '../components/ui/Logo';
 import Spinner from '../components/ui/Spinner';
 import ChatWidget from '../components/ui/ChatWidget';
-import { LesoRibbon, LesoMedallion } from '../components/ui/LesoPattern';
+import { LesoRibbon, LesoMedallion, LesoField, LesoHanging } from '../components/ui/LesoPattern';
 import { SITE_FALLBACK } from '../lib/siteFallback';
 
 const PROGRAM_GRADIENTS = [
@@ -202,13 +202,14 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-[#374151]">
+    <div className="min-h-screen overflow-x-hidden bg-white text-[#374151]">
       {/* Kanga (leso) edge — a Swahili-coast welcome ribbon */}
       <LesoRibbon palette="warm" height={10} />
 
-      {/* Nav */}
-      <header className="sticky top-0 z-40 border-b border-[#e2e8f0] bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+      {/* Nav — the bar itself rests on a leso cloth (field + pindo hem) */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md">
+        <LesoField palette="warm" tile={52} className="pointer-events-none absolute inset-0 opacity-[0.13]" />
+        <div className="relative mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <Logo size={18} to="/" />
           <nav className="hidden items-center gap-7 md:flex">
             {navLinks.map((l) => (
@@ -238,6 +239,8 @@ export default function LandingPage() {
             </div>
           </div>
         )}
+        {/* Pindo hem — the edge of the cloth */}
+        <LesoRibbon palette="warm" height={6} className="absolute inset-x-0 bottom-0" />
       </header>
 
       {/* Hero */}
@@ -256,9 +259,9 @@ export default function LandingPage() {
         <div className="animate-blob animate-float-slow absolute -right-10 bottom-10 -z-10 h-80 w-80 bg-[#f8572b]/20 blur-3xl" />
         {/* Rolling waves at the shoreline */}
         <HeroWaves />
-        {/* Leso medallions — Swahili cloth motifs drifting in the corners */}
+        {/* Leso cloth motifs — a drifting medallion and a hanging kanga */}
         <LesoMedallion palette="cool" size={170} className="animate-float-slow absolute -left-12 top-24 z-0 opacity-40" />
-        <LesoMedallion palette="warm" size={130} className="animate-float absolute right-6 top-10 z-0 opacity-30" />
+        <LesoHanging palette="cool" width={120} height={300} className="animate-sway absolute right-8 top-0 z-0 hidden opacity-60 lg:block" />
 
         <div className="relative z-10 mx-auto max-w-3xl text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-sea-300/30 bg-sea-400/15 px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-sea-100 backdrop-blur">

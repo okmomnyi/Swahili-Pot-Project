@@ -116,4 +116,65 @@ export function LesoMedallion({ size = 120, palette = 'warm', mono = false, clas
   );
 }
 
+/**
+ * The body of the cloth (kanga field) — a repeating floret + diamond + dot
+ * motif. Fills its parent; use a low-opacity className to lay it behind content
+ * (e.g. as the navbar background). `tile` controls the motif scale.
+ */
+export function LesoField({ palette = 'warm', tile = 56, className = '', style }) {
+  const p = PALETTES[palette] || PALETTES.warm;
+  const id = `leso-field-${palette}-${tile}`;
+  const petals = Array.from({ length: 8 }, (_, i) => i * 45);
+  return (
+    <svg className={className} style={style} width="100%" height="100%" aria-hidden="true">
+      <defs>
+        <pattern id={id} width={tile} height={tile} patternUnits="userSpaceOnUse" viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+          {/* central floret */}
+          {petals.map((deg) => (
+            <ellipse key={deg} cx="30" cy="20" rx="3" ry="8" fill={p.a} transform={`rotate(${deg} 30 30)`} />
+          ))}
+          <circle cx="30" cy="30" r="3.2" fill={p.b} />
+          {/* corner diamonds (complete across tile seams) */}
+          {[[0, 0], [60, 0], [0, 60], [60, 60]].map(([x, y]) => (
+            <polygon key={`${x}-${y}`} points={`${x},${y - 5} ${x + 5},${y} ${x},${y + 5} ${x - 5},${y}`} fill={p.c} />
+          ))}
+          {/* edge dots */}
+          {[[30, 0], [0, 30], [60, 30], [30, 60]].map(([x, y]) => (
+            <circle key={`d${x}-${y}`} cx={x} cy={y} r="1.8" fill={p.b} />
+          ))}
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill={`url(#${id})`} />
+    </svg>
+  );
+}
+
+/**
+ * A piece of kanga "hung" against a background: a draped cloth with pindo hems,
+ * a patterned field and a tasselled (zig-zag) bottom edge. Decorative.
+ */
+export function LesoHanging({ palette = 'cool', className = '', width = 130, height = 300 }) {
+  const p = PALETTES[palette] || PALETTES.warm;
+  const hem = palette === 'cool' ? 'warm' : 'cool';
+  return (
+    <div className={className} style={{ width }} aria-hidden="true">
+      <div className="relative overflow-hidden rounded-t-sm shadow-2xl" style={{ height }}>
+        <div className="absolute inset-0" style={{ background: p.ground }} />
+        <LesoField palette={palette} tile={46} className="absolute inset-0 opacity-95" />
+        <LesoRibbon palette={hem} height={14} className="absolute inset-x-0 top-0" />
+        <LesoRibbon palette={hem} height={14} className="absolute inset-x-0 bottom-0" />
+      </div>
+      {/* tasselled fringe */}
+      <svg width={width} height="14" aria-hidden="true">
+        <defs>
+          <pattern id={`leso-fringe-${palette}`} width="12" height="14" patternUnits="userSpaceOnUse">
+            <polygon points="0,0 12,0 6,13" fill={p.ground} />
+          </pattern>
+        </defs>
+        <rect width="100%" height="14" fill={`url(#leso-fringe-${palette})`} />
+      </svg>
+    </div>
+  );
+}
+
 export default LesoMedallion;

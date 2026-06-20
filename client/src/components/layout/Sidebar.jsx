@@ -106,12 +106,15 @@ function buildNav(user) {
   return items;
 }
 
-export default function Sidebar() {
+// The sidebar's contents (header + nav + footer). Shared by the fixed desktop
+// rail and the mobile slide-in drawer. `onNavigate` fires on link taps so the
+// drawer can close itself.
+export function SidebarNav({ onNavigate }) {
   const { user, logout } = useAuth();
   const nav = buildNav(user);
 
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-card md:flex">
+    <div className="flex h-full flex-col bg-card">
       <div className="relative overflow-hidden border-b border-line bg-ocean-deep px-5 py-4">
         <div className="swahili-weave pointer-events-none absolute inset-0 opacity-40" />
         {/* Brass waterline accent under the header. */}
@@ -139,6 +142,7 @@ export default function Sidebar() {
               key={item.to}
               to={item.to}
               end={item.to === '/dashboard'}
+              onClick={onNavigate}
               className={({ isActive }) =>
                 `group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all ${
                   isActive
@@ -178,6 +182,15 @@ export default function Sidebar() {
           Log out
         </button>
       </div>
+    </div>
+  );
+}
+
+// Fixed desktop rail (hidden below md — phones use the drawer in Layout).
+export default function Sidebar() {
+  return (
+    <aside className="hidden w-60 shrink-0 border-r border-line md:block">
+      <SidebarNav />
     </aside>
   );
 }
