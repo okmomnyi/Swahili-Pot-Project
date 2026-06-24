@@ -49,7 +49,7 @@ swahilipot-ims/
 
 ### 1. Database
 
-Create the database (the app creates tables automatically on boot):
+Create the database (the app creates tables automatically on boot as designed):
 
 ```bash
 createdb swahilipot_ims
