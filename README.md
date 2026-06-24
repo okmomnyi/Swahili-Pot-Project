@@ -5,7 +5,7 @@ NGO based in Mombasa, Kenya. SwahiliPot IMS digitizes the organization's interna
 operations: department form submissions, trainee attendance tracking (via QR code),
 and radio frequency downtime reporting.
 
-This is a **staff-only** tool used by Supervisors and Instructors. Trainees interact
+This is a *staff-only* tool used by Supervisors and Instructors. Trainees interact
 only through a single public, login-free QR-scanned attendance page.
 
 - **Organization:** Swahilipot Hub Foundation (founded 2016)
