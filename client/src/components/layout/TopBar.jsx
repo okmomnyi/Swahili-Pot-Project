@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Sun, Moon, ChevronDown, User, Settings, LogOut } from 'lucide-react';
+import { Sun, Moon, ChevronDown, User, Settings, LogOut, Menu } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import NotificationsBell from './NotificationsBell';
@@ -39,7 +39,7 @@ function greeting(hour) {
 
 const ROLE_LABEL = { admin: 'System Admin', supervisor: 'Supervisor', instructor: 'Instructor' };
 
-export default function TopBar() {
+export default function TopBar({ onMenuClick }) {
   const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const { pathname } = useLocation();
@@ -63,8 +63,17 @@ export default function TopBar() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-card px-5">
-      <h1 className="font-display text-base font-semibold text-ink">{pageTitle(pathname)}</h1>
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-card px-3 sm:px-5">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <button
+          onClick={onMenuClick}
+          className="rounded-lg p-2 text-subtle hover:bg-hover hover:text-ink md:hidden"
+          aria-label="Open navigation menu"
+        >
+          <Menu size={20} />
+        </button>
+        <h1 className="truncate font-display text-base font-semibold text-ink">{pageTitle(pathname)}</h1>
+      </div>
 
       <div className="flex items-center gap-2">
         <div className="mr-1 hidden text-right sm:block">
@@ -90,7 +99,7 @@ export default function TopBar() {
             onClick={() => setMenuOpen((o) => !o)}
             className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 hover:bg-hover"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-lagoon text-sm font-semibold text-white shadow-sm ring-2 ring-sea-200/40">
               {user.name.charAt(0).toUpperCase()}
             </span>
             <ChevronDown size={16} className="text-subtle" />

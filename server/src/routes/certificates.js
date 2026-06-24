@@ -9,10 +9,25 @@ const {
   LOGO_PATH, LOGO_ASPECT, BRAND, GOLD, GOLD_LIGHT, INK, MUTED,
   longDate, drawLetterhead, drawSignatureFooter,
 } = require('../lib/pdfBrand');
+const registerDocument = require('../utils/registerDocument');
+const { renderVerificationFooter } = require('../utils/addVerificationFooter');
 
 const router = express.Router();
 
 const TYPES = ['attachment_letter', 'completion_certificate'];
+
+// Collect a PDFKit document built by `build(doc)` (which may be async) into a
+// single Buffer. Used for the two-pass sign-then-render flow.
+function pdfToBuffer(docOptions, build) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument(docOptions);
+    const chunks = [];
+    doc.on('data', (c) => chunks.push(c));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+    Promise.resolve(build(doc)).then(() => doc.end()).catch(reject);
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Elegant landscape certificate (used for completion certificates + trainee
@@ -41,7 +56,7 @@ function drawSeal(doc, cx, cy, r) {
   doc.restore();
 }
 
-function drawCertificate(doc, { title, recipient, bodyLines, dept, leftSig, rightSig, dateStr }) {
+function drawCertificate(doc, { title, recipient, bodyLines, dept, leftSig, rightSig, dateStr, reserveFooter }) {
   const W = doc.page.width;
   const H = doc.page.height;
 
@@ -98,10 +113,10 @@ function drawCertificate(doc, { title, recipient, bodyLines, dept, leftSig, righ
   }
 
   // Seal.
-  drawSeal(doc, cx, H - 150, 26);
+  drawSeal(doc, cx, reserveFooter ? H - 200 : H - 150, 26);
 
-  // Signatures.
-  const sigY = H - 96;
+  // Signatures (lifted up when a verification footer occupies the bottom band).
+  const sigY = reserveFooter ? H - 138 : H - 96;
   const colW = 200;
   const leftX = 90;
   const rightX = W - 90 - colW;
@@ -113,7 +128,8 @@ function drawCertificate(doc, { title, recipient, bodyLines, dept, leftSig, righ
   doc.fillColor(INK).font('Helvetica-Bold').fontSize(11).text(rightSig.name, rightX, sigY + 6, { width: colW, align: 'center' });
   doc.fillColor(MUTED).font('Helvetica').fontSize(9).text(rightSig.title, rightX, doc.y, { width: colW, align: 'center' });
 
-  if (dept) {
+  // The "dept · issued" line is replaced by the verification footer when signing.
+  if (dept && !reserveFooter) {
     doc.fillColor(MUTED).font('Helvetica').fontSize(8.5)
       .text(`${dept} · Issued ${dateStr}`, 0, H - 50, { align: 'center', width: W });
   }
@@ -181,41 +197,70 @@ router.post('/generate', verifyToken, requireRole('supervisor'), async (req, res
       return res.status(400).json({ error: 'Invalid certificate_type' });
     }
 
+    const isCert = d.certificate_type === 'completion_certificate';
+    const docOptions = isCert
+      ? { size: 'A4', layout: 'landscape', margin: 40 }
+      : { size: 'A4', margin: 72 };
+
+    // Draws the document; renders the verification footer only when footerData
+    // is supplied (pass 2).
+    const render = (footerData) =>
+      pdfToBuffer(docOptions, async (doc) => {
+        if (isCert) {
+          const H = doc.page.height;
+          drawCertificate(doc, {
+            title: 'Certificate of Completion',
+            recipient: d.attachee_name,
+            dept: d.department_name,
+            bodyLines: [
+              `has successfully completed the ${d.program_name} attachment programme`,
+              `at Swahilipot Hub Foundation, ${d.department_name},`,
+              `from ${longDate(d.start_date)} to ${longDate(d.end_date)}.`,
+            ],
+            leftSig: { name: d.supervisor_name, title: d.supervisor_title },
+            rightSig: { name: 'Swahilipot Hub Foundation', title: 'Mombasa, Kenya' },
+            dateStr: longDate(new Date()),
+            reserveFooter: !!footerData,
+          });
+          if (footerData) await renderVerificationFooter(doc, footerData, { y: H - 95, qrSize: 38 });
+        } else {
+          drawLetterhead(doc);
+          doc.moveDown(1);
+          doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(15)
+            .text('LETTER OF ATTACHMENT', { align: 'center', characterSpacing: 1 });
+          doc.moveDown(1.5);
+          attachmentLetterBody(doc, d);
+          drawSignatureFooter(doc, d.supervisor_name, d.supervisor_title, { skipBottomRule: !!footerData });
+          if (footerData) await renderVerificationFooter(doc, footerData);
+        }
+      });
+
+    // Pass 1: unsigned bytes → register/sign → Pass 2: re-render with footer.
+    const pass1 = await render(null);
+    const reg = await registerDocument({
+      pdfBytes: pass1,
+      documentType: d.certificate_type,
+      recipientName: d.attachee_name,
+      recipientEmail: d.recipient_email || null,
+      departmentId: req.user.department_id,
+      departmentName: d.department_name,
+      issuedById: req.user.id,
+      issuedByName: req.user.name,
+      issuedByRole: req.user.role,
+    });
+    const finalBytes = reg
+      ? await render({
+          documentId: reg.documentId,
+          verificationUrl: reg.verificationUrl,
+          issuedAt: reg.issuedAt,
+          signature: reg.signature,
+        })
+      : pass1;
+
     const safeName = String(d.attachee_name).replace(/[^a-z0-9]+/gi, '-');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${safeName}-${d.certificate_type}.pdf"`);
-
-    if (d.certificate_type === 'completion_certificate') {
-      const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 40 });
-      doc.on('error', next);
-      doc.pipe(res);
-      drawCertificate(doc, {
-        title: 'Certificate of Completion',
-        recipient: d.attachee_name,
-        dept: d.department_name,
-        bodyLines: [
-          `has successfully completed the ${d.program_name} attachment programme`,
-          `at Swahilipot Hub Foundation, ${d.department_name},`,
-          `from ${longDate(d.start_date)} to ${longDate(d.end_date)}.`,
-        ],
-        leftSig: { name: d.supervisor_name, title: d.supervisor_title },
-        rightSig: { name: 'Swahilipot Hub Foundation', title: 'Mombasa, Kenya' },
-        dateStr: longDate(new Date()),
-      });
-      doc.end();
-    } else {
-      const doc = new PDFDocument({ size: 'A4', margin: 72 });
-      doc.on('error', next);
-      doc.pipe(res);
-      drawLetterhead(doc);
-      doc.moveDown(1);
-      doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(15)
-        .text('LETTER OF ATTACHMENT', { align: 'center', characterSpacing: 1 });
-      doc.moveDown(1.5);
-      attachmentLetterBody(doc, d);
-      drawSignatureFooter(doc, d.supervisor_name, d.supervisor_title);
-      doc.end();
-    }
+    return res.send(finalBytes);
   } catch (err) {
     return next(err);
   }
@@ -245,27 +290,50 @@ router.post('/trainee', verifyToken, requireRole('instructor', 'supervisor'), as
       [tr.id, req.user.department_id, req.user.id, course_name.trim(), completion_date]
     );
 
+    const render = (footerData) =>
+      pdfToBuffer({ size: 'A4', layout: 'landscape', margin: 40 }, async (doc) => {
+        const H = doc.page.height;
+        drawCertificate(doc, {
+          title: 'Certificate of Completion',
+          recipient: tr.name,
+          dept: tr.department_name,
+          bodyLines: [
+            `has successfully completed the ${course_name.trim()} course`,
+            `at Swahilipot Hub Foundation, ${tr.department_name},`,
+            `on ${longDate(completion_date)}.`,
+          ],
+          leftSig: { name: req.user.name, title: 'Department Instructor' },
+          rightSig: { name: 'Swahilipot Hub Foundation', title: 'Mombasa, Kenya' },
+          dateStr: longDate(new Date()),
+          reserveFooter: !!footerData,
+        });
+        if (footerData) await renderVerificationFooter(doc, footerData, { y: H - 95, qrSize: 38 });
+      });
+
+    const pass1 = await render(null);
+    const reg = await registerDocument({
+      pdfBytes: pass1,
+      documentType: 'trainee_certificate',
+      recipientName: tr.name,
+      departmentId: req.user.department_id,
+      departmentName: tr.department_name,
+      issuedById: req.user.id,
+      issuedByName: req.user.name,
+      issuedByRole: req.user.role,
+    });
+    const finalBytes = reg
+      ? await render({
+          documentId: reg.documentId,
+          verificationUrl: reg.verificationUrl,
+          issuedAt: reg.issuedAt,
+          signature: reg.signature,
+        })
+      : pass1;
+
     const safeName = String(tr.name).replace(/[^a-z0-9]+/gi, '-');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${safeName}-completion-certificate.pdf"`);
-
-    const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 40 });
-    doc.on('error', next);
-    doc.pipe(res);
-    drawCertificate(doc, {
-      title: 'Certificate of Completion',
-      recipient: tr.name,
-      dept: tr.department_name,
-      bodyLines: [
-        `has successfully completed the ${course_name.trim()} course`,
-        `at Swahilipot Hub Foundation, ${tr.department_name},`,
-        `on ${longDate(completion_date)}.`,
-      ],
-      leftSig: { name: req.user.name, title: 'Department Instructor' },
-      rightSig: { name: 'Swahilipot Hub Foundation', title: 'Mombasa, Kenya' },
-      dateStr: longDate(new Date()),
-    });
-    doc.end();
+    return res.send(finalBytes);
   } catch (err) {
     return next(err);
   }

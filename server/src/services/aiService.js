@@ -6,17 +6,20 @@ const { getNimClient, NIM_MODELS, NIM_FAST_MODELS, SYSTEM_PROMPT, isRetriable } 
  * Run a chat completion, trying each model in order and falling through on
  * retriable errors (rate-limit, model-gone/EOL, not-found, 5xx).
  */
-async function completeWithFallback({ messages, max_tokens, temperature }) {
+async function completeWithFallback({ messages, max_tokens, temperature, timeout = 90000 }) {
   const client = getNimClient();
   let lastErr = null;
   for (const model of NIM_MODELS) {
     try {
-      const response = await client.chat.completions.create({
-        model,
-        max_tokens,
-        temperature,
-        messages,
-      });
+      const response = await client.chat.completions.create(
+        {
+          model,
+          max_tokens,
+          temperature,
+          messages,
+        },
+        { timeout }
+      );
       const content = response.choices?.[0]?.message?.content;
       if (content && content.trim()) return content.trim();
       lastErr = new Error(`Model ${model} returned no content`);
@@ -34,18 +37,21 @@ async function completeWithFallback({ messages, max_tokens, temperature }) {
 /**
  * Open a streaming chat completion, trying each model until one starts.
  */
-async function streamWithFallback({ messages, max_tokens, temperature, models = NIM_MODELS }) {
+async function streamWithFallback({ messages, max_tokens, temperature, models = NIM_MODELS, timeout = 90000 }) {
   const client = getNimClient();
   let lastErr = null;
   for (const model of models) {
     try {
-      return await client.chat.completions.create({
-        model,
-        max_tokens,
-        temperature,
-        messages,
-        stream: true,
-      });
+      return await client.chat.completions.create(
+        {
+          model,
+          max_tokens,
+          temperature,
+          messages,
+          stream: true,
+        },
+        { timeout }
+      );
     } catch (err) {
       lastErr = err;
       const status = err.status || err.response?.status;
@@ -212,6 +218,7 @@ async function streamSupervisorAnswer({ question, departmentContext, chatHistory
     max_tokens: 600,
     temperature: 0.6,
     models: NIM_FAST_MODELS,
+    timeout: 45000, // assistant: fail over fast for snappy replies
   });
 
   let fullText = '';

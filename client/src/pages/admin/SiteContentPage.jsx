@@ -161,6 +161,33 @@ function MediaUploader({ mediaKey, label, initialHas }) {
   );
 }
 
+function VideoUrlField({ label, value, onChange, hint }) {
+  return (
+    <div className="rounded-lg border border-line p-3">
+      <p className="mb-2 text-sm font-medium text-ink">{label}</p>
+      <div className="flex items-start gap-2">
+        <div className="flex-1">
+          <Input
+            placeholder="https://www.youtube.com/watch?v=…   or   https://…/clip.mp4"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        </div>
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="shrink-0 pt-2 text-sm text-[#dc2626] hover:underline"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      {hint && <p className="mt-2 text-xs text-subtle">{hint}</p>}
+    </div>
+  );
+}
+
 function SectionCard({ title, children, onSave, saving }) {
   return (
     <Card className="p-5">
@@ -205,6 +232,12 @@ function HeroEditor({ value, hasMedia, onSave }) {
     <SectionCard title="Hero Section" onSave={() => onSave(h)}>
       <div className="space-y-4">
         <MediaUploader mediaKey="hero" label="Hero background photo" initialHas={hasMedia} />
+        <VideoUrlField
+          label="Hero video (optional)"
+          value={h.videoUrl || ''}
+          onChange={(v) => setH({ ...h, videoUrl: v })}
+          hint="When set, the hero shows this video instead of the photo. Paste a YouTube/Vimeo link or a direct .mp4/.webm URL."
+        />
         <Input label="Badge text" value={h.badge || ''} onChange={f('badge')} />
         <div className="grid gap-3 sm:grid-cols-3">
           <Input label="Title — start" value={h.titleLead || ''} onChange={f('titleLead')} />
@@ -273,6 +306,12 @@ function AboutEditor({ value, hasMedia, onSave }) {
     <SectionCard title="About Section" onSave={() => onSave(a)}>
       <div className="space-y-4">
         <MediaUploader mediaKey="about" label="About section photo" initialHas={hasMedia} />
+        <VideoUrlField
+          label="About video (optional)"
+          value={a.videoUrl || ''}
+          onChange={(v) => setA({ ...a, videoUrl: v })}
+          hint="When set, a video appears in the About section. Paste a YouTube/Vimeo link or a direct .mp4/.webm URL."
+        />
         <Input label="Eyebrow" value={a.eyebrow || ''} onChange={f('eyebrow')} />
         <div className="grid gap-3 sm:grid-cols-2">
           <Input label="Heading start" value={a.headingLead || ''} onChange={f('headingLead')} />

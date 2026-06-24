@@ -28,6 +28,20 @@ async function start() {
   verifyMailSetup().catch(() => {});
   require('./src/routes/chat').logChatConfig();
 
+  // 3c. Document signing status.
+  const ds = require('./src/utils/documentSigner');
+  if (ds.isSigningConfigured()) {
+    console.log('[docsign] Ed25519 document signing ENABLED — generated PDFs are signed and verifiable.');
+  } else if (process.env.DOCUMENT_SIGNING_PRIVATE_KEY || process.env.DOCUMENT_SIGNING_PUBLIC_KEY) {
+    console.error(
+      `[docsign] Keys are present but INVALID (${ds.signingKeyError()}) — PDFs will generate UNSIGNED. ` +
+        'Fix the DOCUMENT_SIGNING_* values in .env: use the quoted one-line "\\n"-escaped form printed by ' +
+        '`node src/utils/generateKeys.js` (an unquoted multi-line PEM is parsed incorrectly).'
+    );
+  } else {
+    console.warn('[docsign] Document signing DISABLED (set DOCUMENT_SIGNING_PRIVATE_KEY + DOCUMENT_SIGNING_PUBLIC_KEY). PDFs generate without a verification footer.');
+  }
+
   // 4. Start the server.
   app.listen(env.PORT, () => {
     console.log(`SwahiliPot IMS server running on port ${env.PORT}`);

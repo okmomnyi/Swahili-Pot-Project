@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Award, Users, Star, Rocket, Lightbulb, Building2, Phone, ArrowRight, ArrowDown, CheckCircle2,
   Facebook, Twitter, Instagram, Linkedin, Mail, MapPin, Menu, X, Play, Sparkles,
-  Cpu, Palette, Briefcase, HeartHandshake, Plane, GraduationCap, Quote,
+  Cpu, Palette, Briefcase, HeartHandshake, Plane, GraduationCap, Quote, ShieldCheck,
 } from 'lucide-react';
 import { getSiteContent, mediaUrl } from '../api/site';
 import Logo from '../components/ui/Logo';
 import Spinner from '../components/ui/Spinner';
 import ChatWidget from '../components/ui/ChatWidget';
+import { LesoRibbon, LesoMedallion, LesoField, LesoHanging } from '../components/ui/LesoPattern';
 import { SITE_FALLBACK } from '../lib/siteFallback';
 
 const PROGRAM_GRADIENTS = [
@@ -100,7 +101,7 @@ function StatCard({ icon: Icon, value, label, dark }) {
       }`}
     >
       <div className={`mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 ${dark ? 'bg-white/10' : 'bg-[#eff4ff]'}`}>
-        <Icon size={22} className={dark ? 'text-[#7da2ff]' : 'text-[#1e40af]'} />
+        <Icon size={22} className={dark ? 'text-sea-300' : 'text-[#1e40af]'} />
       </div>
       <p className={`font-display text-3xl font-bold ${dark ? 'text-white' : 'text-[#1e40af]'}`}>
         <CountUp end={Number(value) || 0} />
@@ -110,11 +111,68 @@ function StatCard({ icon: Icon, value, label, dark }) {
   );
 }
 
+// Turn a pasted video URL into something embeddable: a YouTube/Vimeo iframe, or
+// a direct video file (.mp4/.webm/.ogg). Anything else is tried as an iframe.
+function toEmbed(url) {
+  const u = (url || '').trim();
+  if (!u) return null;
+  let m = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+  if (m) return { type: 'iframe', src: `https://www.youtube.com/embed/${m[1]}` };
+  m = u.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (m) return { type: 'iframe', src: `https://player.vimeo.com/video/${m[1]}` };
+  if (/\.(mp4|webm|ogg)(\?.*)?$/i.test(u)) return { type: 'file', src: u };
+  return { type: 'iframe', src: u };
+}
+
+function VideoEmbed({ url }) {
+  const e = toEmbed(url);
+  if (!e) return null;
+  return (
+    <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: '16 / 9' }}>
+      {e.type === 'file' ? (
+        <video src={e.src} controls className="absolute inset-0 h-full w-full object-contain" />
+      ) : (
+        <iframe
+          src={e.src}
+          title="Video"
+          className="absolute inset-0 h-full w-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
+      )}
+    </div>
+  );
+}
+
+// A single wave period is 1440 wide; the path repeats twice (2880) so an
+// animated translateX of -50% loops seamlessly. Shared by the hero waves.
+const WAVE_PATH =
+  'M0,40 C240,80 480,0 720,40 C960,80 1200,0 1440,40 C1680,80 1920,0 2160,40 C2400,80 2640,0 2880,40 L2880,120 L0,120 Z';
+
+// Layered Indian-Ocean waves rolling along the foot of the hero.
+function HeroWaves() {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-28 overflow-hidden">
+      <svg className="wave-3 absolute bottom-0 left-0 h-24 w-[200%]" viewBox="0 0 2880 120" preserveAspectRatio="none">
+        <path d={WAVE_PATH} fill="#0e7490" opacity="0.35" />
+      </svg>
+      <svg className="wave-2 absolute bottom-0 left-0 h-20 w-[200%]" viewBox="0 0 2880 120" preserveAspectRatio="none">
+        <path d={WAVE_PATH} fill="#0891b2" opacity="0.4" />
+      </svg>
+      <svg className="wave-1 absolute bottom-0 left-0 h-14 w-[200%]" viewBox="0 0 2880 120" preserveAspectRatio="none">
+        <path d={WAVE_PATH} fill="#22d3ee" opacity="0.5" />
+      </svg>
+    </div>
+  );
+}
+
 export default function LandingPage() {
+  const navigate = useNavigate();
   const [c, setC] = useState(null);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  const [verifyId, setVerifyId] = useState('');
 
   useEffect(() => {
     getSiteContent()
@@ -125,7 +183,7 @@ export default function LandingPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f8faff]">
+      <div className="flex min-h-screen items-center justify-center bg-[#f3f8fb]">
         <Spinner />
       </div>
     );
@@ -144,18 +202,22 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-[#374151]">
-      {/* Nav */}
-      <header className="sticky top-0 z-40 border-b border-[#e2e8f0] bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Logo size={18} />
+    <div className="min-h-screen overflow-x-hidden bg-white text-[#374151]">
+      {/* Kanga (leso) edge — a Swahili-coast welcome ribbon */}
+      <LesoRibbon palette="warm" height={10} />
+
+      {/* Nav — the bar itself rests on a leso cloth (field + pindo hem) */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md">
+        <LesoField palette="warm" tile={52} className="pointer-events-none absolute inset-0 opacity-[0.13]" />
+        <div className="relative mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+          <Logo size={18} to="/" />
           <nav className="hidden items-center gap-7 md:flex">
             {navLinks.map((l) => (
               <a key={l.href} href={l.href} className="text-sm font-medium text-[#374151] transition-colors hover:text-[#1e40af]">
                 {l.label}
               </a>
             ))}
-            <Link to="/login" className="rounded-lg bg-[#1e40af] px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#1730a0] hover:shadow-md">
+            <Link to="/login" className="rounded-lg bg-lagoon px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
               Staff Login
             </Link>
           </nav>
@@ -171,18 +233,20 @@ export default function LandingPage() {
                   {l.label}
                 </a>
               ))}
-              <Link to="/login" className="rounded-lg bg-[#1e40af] px-4 py-2 text-center text-sm font-medium text-white">
+              <Link to="/login" className="rounded-lg bg-lagoon px-4 py-2 text-center text-sm font-medium text-white">
                 Staff Login
               </Link>
             </div>
           </div>
         )}
+        {/* Pindo hem — the edge of the cloth */}
+        <LesoRibbon palette="warm" height={6} className="absolute inset-x-0 bottom-0" />
       </header>
 
       {/* Hero */}
-      <section className="relative isolate overflow-hidden px-4 pb-24 pt-20 text-white">
-        {/* Background */}
-        <div className="absolute inset-0 -z-10" style={{ background: 'linear-gradient(135deg, #0a1654 0%, #1730a0 55%, #1e40af 100%)' }} />
+      <section className="relative isolate overflow-hidden px-4 pb-28 pt-20 text-white">
+        {/* Background — deep ocean sliding into lagoon teal */}
+        <div className="absolute inset-0 -z-10" style={{ background: 'linear-gradient(135deg, #0a1654 0%, #11357a 42%, #0e7490 100%)' }} />
         {heroImg && (
           <div
             className="absolute inset-0 -z-10 bg-cover bg-center opacity-30 mix-blend-luminosity"
@@ -190,17 +254,22 @@ export default function LandingPage() {
           />
         )}
         <div className="hero-grid absolute inset-0 -z-10 opacity-60" />
-        {/* Floating blobs */}
-        <div className="animate-blob animate-float absolute -left-16 top-10 -z-10 h-72 w-72 bg-[#3b63d4]/30 blur-3xl" />
-        <div className="animate-blob animate-float-slow absolute -right-10 bottom-0 -z-10 h-80 w-80 bg-[#7da2ff]/20 blur-3xl" />
+        {/* Floating blobs — teal swell + coral sunset glow */}
+        <div className="animate-blob animate-float absolute -left-16 top-10 -z-10 h-72 w-72 bg-[#22d3ee]/25 blur-3xl" />
+        <div className="animate-blob animate-float-slow absolute -right-10 bottom-10 -z-10 h-80 w-80 bg-[#f8572b]/20 blur-3xl" />
+        {/* Rolling waves at the shoreline */}
+        <HeroWaves />
+        {/* Leso cloth motifs — a drifting medallion and a hanging kanga */}
+        <LesoMedallion palette="cool" size={170} className="animate-float-slow absolute -left-12 top-24 z-0 opacity-40" />
+        <LesoHanging palette="cool" width={120} height={300} className="animate-sway absolute right-8 top-0 z-0 hidden opacity-60 lg:block" />
 
-        <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-white/90 backdrop-blur">
+        <div className="relative z-10 mx-auto max-w-3xl text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-sea-300/30 bg-sea-400/15 px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-sea-100 backdrop-blur">
             <Sparkles size={13} /> {hero.badge}
           </span>
           <h1 className="mt-6 font-display text-4xl font-bold leading-[1.1] sm:text-6xl">
             {hero.titleLead}{' '}
-            <span className="bg-gradient-to-r from-[#7da2ff] via-[#a5c0ff] to-[#7da2ff] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#67e8f9] via-[#a5c0ff] to-[#e9c766] bg-clip-text text-transparent">
               {hero.titleHighlight}
             </span>{' '}
             {hero.titleTrail}
@@ -215,6 +284,12 @@ export default function LandingPage() {
               {hero.secondaryLabel}
             </a>
           </div>
+
+          {hero.videoUrl && (
+            <div className="mx-auto mt-12 max-w-2xl overflow-hidden rounded-2xl border border-white/20 shadow-2xl ring-1 ring-white/10">
+              <VideoEmbed url={hero.videoUrl} />
+            </div>
+          )}
 
           <div className="mx-auto mt-14 grid max-w-xl grid-cols-3 gap-6 border-t border-white/15 pt-8">
             {[
@@ -232,7 +307,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <a href="#decade" className="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/60 hover:text-white" aria-label="Scroll down">
+        <a href="#decade" className="absolute bottom-5 left-1/2 z-10 -translate-x-1/2 text-white/70 hover:text-white" aria-label="Scroll down">
           <ArrowDown size={22} className="animate-float" />
         </a>
       </section>
@@ -260,7 +335,9 @@ export default function LandingPage() {
           </Reveal>
 
           <Reveal className="mt-12" delay={150}>
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1730a0] to-[#1e40af] px-6 py-10 text-center text-white shadow-xl">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1730a0] via-[#1e40af] to-[#0e7490] px-6 py-10 text-center text-white shadow-xl">
+              <div className="swahili-weave pointer-events-none absolute inset-0 opacity-30" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-sun-brass" />
               <Quote size={120} className="absolute -left-4 -top-4 text-white/10" />
               <p className="relative font-display text-xl font-semibold sm:text-2xl">{decade.quote}</p>
               <p className="relative mx-auto mt-3 max-w-2xl text-sm text-white/80">{decade.quoteBody}</p>
@@ -293,22 +370,33 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Kanga border divider */}
+      <LesoRibbon palette="warm" height={20} className="opacity-90" />
+
       {/* About */}
-      <section id="about" className="bg-[#f8faff] px-4 py-20">
+      <section id="about" className="relative isolate overflow-hidden bg-[#f8faff] px-4 py-20">
+        {/* Leso watermark */}
+        <LesoMedallion palette="warm" size={360} className="absolute -right-24 -top-16 -z-10 opacity-[0.07]" />
         <div className="mx-auto grid max-w-5xl items-center gap-12 md:grid-cols-2">
           <Reveal>
             <div className="relative">
               <div className="overflow-hidden rounded-3xl shadow-xl">
-                {aboutImg ? (
-                  <img src={aboutImg} alt="Swahilipot youth" className="h-72 w-full object-cover" />
+                {about.videoUrl ? (
+                  <VideoEmbed url={about.videoUrl} />
                 ) : (
-                  <div className="flex h-72 w-full items-center justify-center bg-gradient-to-br from-[#1e40af] to-[#3b63d4]">
-                    <Users size={64} className="text-white/80" />
-                  </div>
+                  <>
+                    {aboutImg ? (
+                      <img src={aboutImg} alt="Swahilipot youth" className="h-72 w-full object-cover" />
+                    ) : (
+                      <div className="flex h-72 w-full items-center justify-center bg-gradient-to-br from-[#1e40af] to-[#3b63d4]">
+                        <Users size={64} className="text-white/80" />
+                      </div>
+                    )}
+                    <button className="pulse-ring absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#1e40af] shadow-lg transition-transform hover:scale-105">
+                      <Play size={22} className="ml-1" fill="currentColor" />
+                    </button>
+                  </>
                 )}
-                <button className="pulse-ring absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#1e40af] shadow-lg transition-transform hover:scale-105">
-                  <Play size={22} className="ml-1" fill="currentColor" />
-                </button>
               </div>
               {/* floating stat badge */}
               <div className="absolute -bottom-6 -right-4 rounded-2xl bg-white px-5 py-3 shadow-lg ring-1 ring-[#e2e8f0]">
@@ -361,7 +449,9 @@ export default function LandingPage() {
       </section>
 
       {/* Programs */}
-      <section id="programs" className="px-4 py-20">
+      <section id="programs" className="relative isolate overflow-hidden px-4 py-20">
+        {/* Leso watermark */}
+        <LesoMedallion palette="sand" size={300} className="absolute -left-20 bottom-0 -z-10 opacity-[0.08]" />
         <div className="mx-auto max-w-5xl">
           <Reveal>
             <h2 className="text-center font-display text-3xl font-bold text-[#374151] sm:text-4xl">Our Programs</h2>
@@ -396,10 +486,14 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Kanga border divider into the dark band */}
+      <LesoRibbon palette="cool" height={20} />
+
       {/* Impact — dark band */}
       <section id="impact" className="relative isolate overflow-hidden px-4 py-20 text-white">
-        <div className="absolute inset-0 -z-10" style={{ background: 'linear-gradient(135deg, #0a1654 0%, #1e40af 100%)' }} />
-        <div className="animate-blob animate-float-slow absolute -right-16 top-0 -z-10 h-72 w-72 bg-[#3b63d4]/30 blur-3xl" />
+        <div className="absolute inset-0 -z-10" style={{ background: 'linear-gradient(135deg, #0a1654 0%, #134e6b 60%, #0e7490 100%)' }} />
+        <div className="swahili-weave absolute inset-0 -z-10 opacity-25" />
+        <div className="animate-blob animate-float-slow absolute -right-16 top-0 -z-10 h-72 w-72 bg-[#22d3ee]/25 blur-3xl" />
         <div className="mx-auto max-w-5xl text-center">
           <Reveal>
             <h2 className="font-display text-3xl font-bold sm:text-4xl">Our Impact</h2>
@@ -445,10 +539,45 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Verify a document */}
+      <section id="verify" className="px-4 py-16">
+        <div className="mx-auto max-w-2xl rounded-2xl border border-[#e2e8f0] bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[#eff4ff]">
+            <ShieldCheck className="h-6 w-6 text-[#1e40af]" />
+          </div>
+          <h2 className="font-display text-2xl font-bold text-[#374151]">Verify a Document</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-[#6b7280]">
+            Have you received a document from Swahilipot Hub Foundation? Enter the Document ID from its footer
+            to confirm it is authentic.
+          </p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (verifyId.trim()) navigate(`/verify/${verifyId.trim()}`);
+            }}
+            className="mx-auto mt-5 flex max-w-md flex-col gap-2 sm:flex-row"
+          >
+            <input
+              value={verifyId}
+              onChange={(e) => setVerifyId(e.target.value)}
+              placeholder="e.g. SPH-2026-ATT-A7F3K9"
+              className="flex-1 rounded-lg border border-[#d1d5db] px-3 py-2.5 text-sm focus:border-[#1e40af] focus:outline-none focus:ring-2 focus:ring-[#bfdbfe]"
+            />
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center gap-1 rounded-lg bg-[#1e40af] px-5 py-2.5 text-sm font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-[#1730a0]"
+            >
+              Verify <ArrowRight className="h-4 w-4" />
+            </button>
+          </form>
+        </div>
+      </section>
+
       {/* Newsletter */}
       <section className="relative isolate overflow-hidden px-4 py-14 text-white">
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#1730a0] to-[#1e40af]" />
-        <div className="animate-blob absolute -left-10 -top-10 -z-10 h-48 w-48 bg-white/10 blur-2xl" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#1730a0] via-[#155e75] to-[#0e7490]" />
+        <div className="swahili-weave absolute inset-0 -z-10 opacity-20" />
+        <div className="animate-blob absolute -left-10 -top-10 -z-10 h-48 w-48 bg-[#22d3ee]/20 blur-2xl" />
         <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-5 md:flex-row">
           <div>
             <h3 className="font-display text-2xl font-bold">{newsletter.heading}</h3>
@@ -468,11 +597,15 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Kanga ribbon closing the page */}
+      <LesoRibbon palette="warm" height={16} />
+
       {/* Footer */}
-      <footer className="bg-[#0a1654] px-4 py-14 text-white/80">
-        <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-2 md:grid-cols-4">
+      <footer className="relative bg-[#0a1654] px-4 py-14 text-white/80">
+        <div className="swahili-weave pointer-events-none absolute inset-0 opacity-15" />
+        <div className="relative mx-auto grid max-w-6xl gap-8 sm:grid-cols-2 md:grid-cols-4">
           <div>
-            <div className="w-fit rounded-lg bg-white px-2.5 py-2"><Logo size={16} /></div>
+            <Link to="/" aria-label="SwahiliPot Hub Foundation — home" className="inline-block w-fit rounded-lg bg-white px-2.5 py-2 transition-transform hover:scale-[1.03]"><Logo size={16} /></Link>
             <p className="mt-4 text-sm text-white/70">
               Empowering youth through technology, arts, and entrepreneurship across East Africa.
             </p>

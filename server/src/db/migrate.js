@@ -196,6 +196,38 @@ async function runOnce() {
         generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )`);
 
+    // --- Delta 6: signed-document registry (fraud prevention) ---
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS documents (
+        id SERIAL PRIMARY KEY,
+        document_id VARCHAR(30) NOT NULL UNIQUE,
+        document_type VARCHAR(50) NOT NULL
+          CHECK (document_type IN (
+            'attachment_letter', 'completion_certificate',
+            'progress_report', 'completion_letter', 'trainee_certificate', 'general'
+          )),
+        recipient_name VARCHAR(150) NOT NULL,
+        recipient_email VARCHAR(255),
+        department_id INTEGER NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
+        department_name VARCHAR(100) NOT NULL,
+        issued_by INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+        issued_by_name VARCHAR(150) NOT NULL,
+        issued_by_role VARCHAR(30) NOT NULL,
+        issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        content_hash VARCHAR(64) NOT NULL,
+        signature VARCHAR(200) NOT NULL,
+        file_url VARCHAR(500),
+        is_revoked BOOLEAN NOT NULL DEFAULT false,
+        revoked_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        revoked_at TIMESTAMPTZ,
+        revocation_reason TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`);
+    await client.query('CREATE INDEX IF NOT EXISTS idx_documents_document_id ON documents(document_id)');
+    await client.query('CREATE INDEX IF NOT EXISTS idx_documents_recipient ON documents(LOWER(recipient_name))');
+    await client.query('CREATE INDEX IF NOT EXISTS idx_documents_department ON documents(department_id, issued_at DESC)');
+    await client.query('CREATE INDEX IF NOT EXISTS idx_documents_issued_by ON documents(issued_by)');
+
     // Intentional startup logging.
     console.log('Database migration complete — all tables ensured.');
   } finally {

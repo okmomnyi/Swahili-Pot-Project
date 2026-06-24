@@ -66,10 +66,16 @@ function drawLetterhead(doc) {
   doc.y = ruleY + 20;
 }
 
-/** Signature block + bottom brand rule for letters/reports (portrait). */
-function drawSignatureFooter(doc, name, title) {
+/**
+ * Signature block + bottom brand rule for letters/reports (portrait).
+ * Pass { skipBottomRule: true } to leave the bottom margin free for a
+ * verification footer.
+ */
+function drawSignatureFooter(doc, name, title, opts = {}) {
   const left = doc.page.margins.left;
-  const bottom = doc.page.height - 140;
+  // Lift the signature block higher when a verification footer will sit below it
+  // (skipBottomRule is passed exactly in that case), so the two don't collide.
+  const bottom = doc.page.height - (opts.skipBottomRule ? 200 : 140);
   if (doc.y < bottom) doc.y = bottom;
   doc.strokeColor('#9ca3af').lineWidth(1).moveTo(left, doc.y).lineTo(left + 180, doc.y).stroke();
   doc.moveDown(0.4);
@@ -77,8 +83,10 @@ function drawSignatureFooter(doc, name, title) {
   doc.font('Helvetica').fontSize(10).fillColor(MUTED).text(title || 'Department Supervisor');
   doc.fontSize(9).fillColor(MUTED).text('Swahilipot Hub Foundation · Mombasa, Kenya');
 
-  const lineY = doc.page.height - 56;
-  doc.strokeColor(BRAND).lineWidth(1).moveTo(left, lineY).lineTo(doc.page.width - left, lineY).stroke();
+  if (!opts.skipBottomRule) {
+    const lineY = doc.page.height - 56;
+    doc.strokeColor(BRAND).lineWidth(1).moveTo(left, lineY).lineTo(doc.page.width - left, lineY).stroke();
+  }
 }
 
 module.exports = {
