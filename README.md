@@ -315,6 +315,7 @@ disabled and PDFs generate without the verification footer.
   the rotation date here when it happens.
 - **Network:** `/verify/*` must be reachable from the public internet without
   login or VPN — it is the interface external parties use to check documents.
+  it is a great system to work on
 
 ---
 
