@@ -61,7 +61,9 @@ export default {
         accentSoft: 'var(--color-accent-soft)',
       },
       fontFamily: {
+          // 'Plus Jakarta Sans' for headings — friendly, modern geometric feel
         display: ['"Plus Jakarta Sans"', 'sans-serif'],
+         // Inter for body text — high readability at small sizes
         sans: ['Inter', 'sans-serif'],
       },
       backgroundImage: {
